@@ -1,0 +1,363 @@
+name = "crc_survival"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/crc_survival/colorretal.csv",
+    "papers/crc_survival/colorretal_labels.csv",
+    "papers/crc_survival/colorretal_pp.csv",
+    "papers/crc_survival/paper_text.txt",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "Colorectal cancer registry records"
+path = "data/colorretal.csv"
+description = '''Patient-level colorectal cancer registry table with 18,996 rows and 69 columns. Each row appears to be one case/study record (`ID_estudo`), and columns combine coded demographics and geography, consultation/diagnosis/treatment/follow-up dates, tumor site and morphology fields (`TOPO`, `MORFO`, `DESCTOPO`, `DESCMORFO`), staging/TNM variables, treatment indicators, and recurrence fields. Use this file when you need the most complete available feature set; many variables are coded and may require a codebook or manual inspection before analysis.'''
+
+[[data.catalog]]
+name = "Preprocessed colorectal feature table"
+path = "data/colorretal_pp.csv"
+description = '''Reduced patient-level table with 33 columns and 33,565 rows, retaining a compact subset of coded predictors plus key date fields such as `DTCONSULT`, `DTDIAG`, `DTTRAT`, `DTULTINFO`, and `DTRECIDIVA`. Rows represent cases/patients and columns represent baseline characteristics, treatment flags, follow-up status, and a smaller set of timing variables than in `colorretal.csv`. Use this file for analyses that need a narrower feature set or for computing intervals from dates without working from the full raw registry schema.'''
+
+[[data.catalog]]
+name = "Colorectal survival labels table"
+path = "data/colorretal_labels.csv"
+description = '''Patient-level modeling table with 37 columns and 31,916 rows that keeps coded baseline covariates but adds derived outcome labels such as `obito_geral`, `obito_cancer`, `vivo_ano1`, `vivo_ano3`, and `vivo_ano5`. It also includes numeric interval-like fields (`ULTICONS`, `ULTIDIAG`, `ULTITRAT`) instead of the original date columns, suggesting this version was prepared for machine-learning tasks. Use this file when training or evaluating fixed-horizon survival or mortality classifiers rather than deriving labels yourself from raw dates.'''
+
+[[data.catalog]]
+name = "Colorectal cancer study paper text"
+path = "data/paper_text.txt"
+description = '''Plain-text manuscript content describing the colorectal cancer study, including abstract-style narrative about incidence, data source, modeling approach, and survival prediction tasks. This is unstructured text rather than tabular data. Use it to recover project context, outcome definitions, and the intended analytical framing for the CSV datasets.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: crc_survival
+
+## Background
+We are modeling colorectal cancer survival in residents of São Paulo state treated between 2000 and 2021 using Hospital Based Cancer Registry data from Fundação Oncocentro de São Paulo. The local files provide the cohort in three forms: a rawer extract (`colorretal.csv`), a preprocessed table with dates (`colorretal_pp.csv`), and an analysis-ready labeled table (`colorretal_labels.csv`). The main objective is to reproduce five binary prediction tasks—cancer-specific death, all-cause death, and survival at 1, 3, and 5 years—using classical machine-learning classifiers plus feature-association and model-interpretation analyses.
+
+## Research Goals
+1. Lock an analysis-ready cohort from the local registry files and define the exact predictor set used across all classification tasks.
+2. Construct the five binary outcomes and apply the correct eligibility filters for the horizon-specific survival analyses.
+3. Quantify feature–label associations with chi-square tests for each outcome.
+4. Preprocess predictors, preserve train/test separation, and create the modeling splits for each task.
+5. Train the Naive Bayes baseline for each of the five binary tasks.
+6. Tune and train Random Forest models for each task.
+7. Tune and train XGBoost models for each task.
+8. Evaluate all models with held-out test data using confusion matrices and ROC/AUC summaries, and verify train/test class balance.
+9. Generate feature-importance explanations for the tree-based models using SHAP-style additive explanations.
+
+## Methodological Preferences
+- Use `colorretal_labels.csv` as the authoritative modeling table because it already contains the engineered labels and follow-up duration columns needed for eligibility checks.
+- Use `colorretal_pp.csv` only to audit date arithmetic (`DTDIAG`, `DTULTINFO`) and confirm the derived duration fields if needed; do not build the main modeling tables from `colorretal.csv` unless you can reconcile row-count differences first.
+- Keep a fixed 25-feature predictor set across all analyses: `ESCOLARI`, `IDADE`, `SEXO`, `IBGE`, `CATEATEND`, `DIAGPREV`, `EC`, `TRATHOSP`, `NENHUM`, `CIRURGIA`, `RADIO`, `QUIMIO`, `HORMONIO`, `TMO`, `IMUNO`, `OUTROS`, `NENHUMANT`, `CONSDIAG`, `TRATCONS`, `DIAGTRAT`, `ANODIAG`, `DRS`, `RRAS`, `RECNENHUM`, `IBGEATEN`.
+- Explicitly exclude leakage or duplicate columns from modeling: `obito_geral`, `obito_cancer`, `vivo_ano1`, `vivo_ano3`, `vivo_ano5`, `ULTINFO`, `ULTICONS`, `ULTIDIAG`, `ULTITRAT`, `ECGRUP`, `FAIXAETAR`, `ESCOLARI_2`.
+- Treat missing values conservatively: impute with most-frequent category/value within the training set only.
+- Convert categorical/object predictors to numeric with `sklearn.preprocessing.OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)`.
+- Normalize all predictors to zero mean and unit variance with `StandardScaler`, even for tree models, to mirror the common preprocessing pipeline.
+- Use a random 75%/25% train/test split for each task with `train_test_split(..., test_size=0.25, stratify=y, random_state=42)`.
+- Confirm that train/test class proportions remain comparable after splitting; use a chi-square test on the 2×2 table of set membership by class.
+- Perform chi-square feature screening with `scipy.stats.chi2_contingency`, using `correction=False`; report raw p-values without multiple-testing correction.
+- Use `GaussianNB` for the Naive Bayes model; do not add extra model families as substitutes.
+- Use `RandomForestClassifier` with training-set-only hyperparameter search by 5-fold stratified CV.
+- Use `xgboost.XGBClassifier` with binary logistic output and training-set-only hyperparameter search by 5-fold stratified CV.
+- Prefer `RandomizedSearchCV` over exhaustive grids for Random Forest and XGBoost to keep runtime reasonable while still exploring the intended parameter ranges.
+- Score hyperparameter search with ROC AUC and refit the best estimator on the full training set.
+- Use the default probability cutoff of 0.5 for converting predicted probabilities into class labels.
+- Evaluate each fitted model with: test confusion matrix, test accuracy, sensitivity, specificity, training ROC/AUC, and test ROC/AUC.
+- Plot types should include: confusion-matrix heatmaps, ROC curves for train and test sets, and SHAP summary/bar plots for the tree models.
+- Use `shap.TreeExplainer` for Random Forest and XGBoost feature explanations; rank features by mean absolute SHAP value on the held-out test set.
+- Do not use oversampling, undersampling, class-weight tuning, threshold tuning, Kaplan–Meier, Cox models, or neural networks in the main reproduction.
+
+## What to Approve
+- The plan uses `colorretal_labels.csv` as the primary source and treats `colorretal_pp.csv` as an audit table rather than rebuilding labels from ambiguous raw codes.
+- The agent locks the predictor set to the 25 approved columns and excludes all label-derived or follow-up-derived leakage variables.
+- The five outcomes are handled as separate tasks, with correct horizon-specific eligibility filtering for 1-, 3-, and 5-year survival.
+- Preprocessing is fit on training data only, then applied to test data; no leakage from combined fitting.
+- The split is 75/25 with stratification, and Random Forest/XGBoost tuning is done only inside the training set with 5-fold stratified CV.
+- The model set is exactly Gaussian Naive Bayes, Random Forest, and XGBoost.
+- The evaluation includes confusion matrices plus ROC/AUC for both training and testing, not just a single scalar metric.
+- SHAP-based interpretation is included for both tree-based models.
+- Hyperparameter ranges are broad enough to search meaningfully but bounded enough to avoid an uncontrolled sweep.
+
+## What to Push Back On
+- Using `ULTINFO`, `ULTICONS`, `ULTIDIAG`, `ULTITRAT`, or any output column as a predictor.
+- Replacing the classification setup with survival-analysis models, neural networks, SVMs, or other off-protocol learners.
+- Tuning hyperparameters on the full dataset or using the test set during model selection.
+- Dropping the chi-square feature-association step or the SHAP interpretation step.
+- Reporting only accuracy, only AUC, or only cross-validation metrics without held-out test evaluation.
+- Ignoring the different positive-class meanings across tasks (`death` for mortality outcomes versus `survival` for horizon-specific survival outcomes).
+- One-hot encoding or alternative preprocessing that materially departs from the single numeric encoding plus z-score normalization workflow.
+- Using aggressive class balancing, custom decision thresholds, or probability calibration not specified here.
+- Rebuilding the cohort from `colorretal.csv` alone without first resolving inconsistencies against the labeled analysis table.
+
+## Domain Interests
+- Clinical stage should be one of the strongest signals; if it is not, suspect encoding errors or leakage elsewhere.
+- Recurrence, lack of surgery, older age, and treatment-context variables should have clinically plausible relationships with poorer outcomes.
+- Calendar year of diagnosis may matter because it can proxy secular improvements in care and access.
+- Residence/treatment-region variables may contribute signal, reflecting health-service heterogeneity rather than biology alone.
+- Random Forest may overfit more readily than XGBoost when the parameter search is too wide; compare train-versus-test AUC gaps carefully.
+- Feature rankings should be directionally interpretable and reasonably stable across related endpoints, especially between all-cause death and longer-horizon survival tasks.
+
+## Implementation Specifications
+1. **Goal 1: Lock the analytic table and predictor set**
+   - **Parameters**:
+     - Primary modeling file: `colorretal_labels.csv`
+     - Audit file for date checks: `colorretal_pp.csv`
+     - Predictor columns to keep exactly:
+       1. `ESCOLARI`
+       2. `IDADE`
+       3. `SEXO`
+       4. `IBGE`
+       5. `CATEATEND`
+       6. `DIAGPREV`
+       7. `EC`
+       8. `TRATHOSP`
+       9. `NENHUM`
+       10. `CIRURGIA`
+       11. `RADIO`
+       12. `QUIMIO`
+       13. `HORMONIO`
+       14. `TMO`
+       15. `IMUNO`
+       16. `OUTROS`
+       17. `NENHUMANT`
+       18. `CONSDIAG`
+       19. `TRATCONS`
+       20. `DIAGTRAT`
+       21. `ANODIAG`
+       22. `DRS`
+       23. `RRAS`
+       24. `RECNENHUM`
+       25. `IBGEATEN`
+   - **Implementation constraints**:
+     - Exclude these columns from every model matrix: `obito_geral`, `obito_cancer`, `vivo_ano1`, `vivo_ano3`, `vivo_ano5`, `ULTINFO`, `ULTICONS`, `ULTIDIAG`, `ULTITRAT`, `ECGRUP`, `FAIXAETAR`, `ESCOLARI_2`.
+     - Keep the predictor set identical across all five tasks; only the label and the eligible rows change.
+     - If row counts differ between source files, trust `colorretal_labels.csv` for the main reproduction.
+
+2. **Goal 2: Define labels and eligibility**
+   - **Equations**:
+     - If auditing from `colorretal_pp.csv`, compute diagnosis-to-last-information time in days as  
+       `ULTIDIAG = (DTULTINFO - DTDIAG)`  
+       where both dates are parsed with `pandas.to_datetime` and the result is taken as integer days.
+     - For horizon-specific tasks with threshold \( h \) days, define eligibility as  
+       \[
+       \text{eligible}_h = \mathbf{1}\left[(\text{ULTIDIAG} \ge h) \lor (y_h = 0)\right]
+       \]
+       where \( y_h \) is the corresponding survival label.
+   - **Parameters**:
+     - Cancer-specific mortality task: `y = obito_cancer`, with class coding `0 = no cancer death`, `1 = cancer death`.
+     - Overall mortality task: `y = obito_geral`, with class coding `0 = no death`, `1 = death by any cause`.
+     - 1-year survival task: `y = vivo_ano1`, with class coding `0 = death before 1 year`, `1 = survival to at least 1 year`.
+     - 3-year survival task: `y = vivo_ano3`, with class coding `0 = death before 3 years`, `1 = survival to at least 3 years`.
+     - 5-year survival task: `y = vivo_ano5`, with class coding `0 = death before 5 years`, `1 = survival to at least 5 years`.
+   - **Thresholds**:
+     - 1-year horizon: \( h = 365 \) days
+     - 3-year horizon: \( h = 1095 \) days
+     - 5-year horizon: \( h = 1825 \) days
+   - **Implementation constraints**:
+     - For `obito_cancer` and `obito_geral`, keep all rows with nonmissing labels.
+     - For `vivo_ano1`, `vivo_ano3`, and `vivo_ano5`, filter rows with the corresponding `eligible_h = 1`.
+     - Do not recode the positive class across tasks; preserve the original label semantics.
+
+3. **Goal 3: Chi-square feature–label associations**
+   - **Equations**:
+     - For each feature \( X_j \) and label \( Y \), build contingency counts \( O_{ab} \) for feature level \( a \) and class \( b \).
+     - Expected counts:
+       \[
+       E_{ab} = \frac{(\text{row total}_a)(\text{column total}_b)}{N}
+       \]
+     - Chi-square statistic:
+       \[
+       \chi^2 = \sum_{a}\sum_{b}\frac{(O_{ab}-E_{ab})^2}{E_{ab}}
+       \]
+   - **Parameters**:
+     - Use `scipy.stats.chi2_contingency(contingency_table, correction=False)`.
+   - **Implementation constraints**:
+     - Run the test separately for each of the 25 predictors against each of the five labels.
+     - Perform this on the full eligible dataset for each task before train/test splitting.
+     - Cast predictors to categorical/string values for contingency construction if they are stored numerically.
+     - Report raw p-values only; do not use p-value-based feature selection afterward.
+
+4. **Goal 4: Preprocess and split**
+   - **Equations**:
+     - Standardization for each processed feature \( x \):
+       \[
+       z = \frac{x - \mu_{\text{train}}}{\sigma_{\text{train}}}
+       \]
+       where \( \mu_{\text{train}} \) and \( \sigma_{\text{train}} \) are estimated from the training subset only.
+   - **Parameters**:
+     - Train/test split: `test_size=0.25`, `random_state=42`, `stratify=y`
+     - Cross-validation object for tuning: `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`
+     - Imputer: `SimpleImputer(strategy='most_frequent')`
+     - Encoder for object columns: `OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)`
+     - Scaler: `StandardScaler()`
+   - **Thresholds**:
+     - Accept the split if the chi-square test comparing train vs test label counts is non-significant at `p > 0.05`.
+   - **Implementation constraints**:
+     - Fit imputer, encoder, and scaler on the training subset only.
+     - Apply the learned transformations unchanged to the test subset.
+     - Refit preprocessing separately for each of the five tasks because the eligible rows differ.
+
+5. **Goal 5: Train the Naive Bayes baseline**
+   - **Equations**:
+     - Posterior class probability:
+       \[
+       P(Y=k \mid X=x) = \frac{P(Y=k)\prod_{j=1}^{p} p(x_j \mid Y=k)}{\sum_{\ell} P(Y=\ell)\prod_{j=1}^{p} p(x_j \mid Y=\ell)}
+       \]
+     - With Gaussian Naive Bayes on standardized features:
+       \[
+       p(x_j \mid Y=k)=\frac{1}{\sqrt{2\pi\sigma_{jk}^2}}\exp\left(-\frac{(x_j-\mu_{jk})^2}{2\sigma_{jk}^2}\right)
+       \]
+       where \( \mu_{jk} \) and \( \sigma_{jk}^2 \) are the class-specific mean and variance for feature \( j \).
+   - **Parameters**:
+     - Model: `sklearn.naive_bayes.GaussianNB(var_smoothing=1e-9)`
+     - Priors: estimated from the training data
+   - **Thresholds**:
+     - Hard class call: predict class 1 if `predict_proba[:,1] >= 0.5`
+   - **Implementation constraints**:
+     - No hyperparameter search for Naive Bayes.
+     - Fit one model per task using the preprocessed training matrix from Goal 4.
+
+6. **Goal 6: Tune and train Random Forest**
+   - **Equations**:
+     - Node impurity with Gini criterion:
+       \[
+       G(t)=1-\sum_{k=0}^{1} p_{k|t}^2
+       \]
+     - Ensemble class-1 probability:
+       \[
+       \hat{P}(Y=1\mid x)=\frac{1}{B}\sum_{b=1}^{B}\hat{P}_b(Y=1\mid x)
+       \]
+       where \( B \) is the number of trees.
+   - **Parameters**:
+     - Base estimator: `RandomForestClassifier(random_state=42, n_jobs=-1, class_weight=None, oob_score=False)`
+     - Search method: `RandomizedSearchCV`
+     - CV: 5-fold stratified
+     - Scoring: `'roc_auc'`
+     - `n_iter = 40`
+     - Parameter search space:
+       - `n_estimators`: `[200, 400, 600, 800, 1000]`
+       - `max_depth`: `[None, 5, 10, 20, 30, 40]`
+       - `min_samples_split`: `[2, 5, 10, 20]`
+       - `min_samples_leaf`: `[1, 2, 4, 8]`
+       - `max_features`: `['sqrt', 'log2', None]`
+       - `criterion`: `['gini', 'entropy']`
+       - `bootstrap`: `[True]`
+   - **Thresholds**:
+     - Hard class call: predict class 1 if `predict_proba[:,1] >= 0.5`
+   - **Implementation constraints**:
+     - Tune on the training subset only.
+     - Refit the best RF model on the full training data before scoring the test set.
+     - Use the same preprocessed feature matrix as for Naive Bayes.
+
+7. **Goal 7: Tune and train XGBoost**
+   - **Equations**:
+     - Logistic probability:
+       \[
+       \hat{p}_i = \sigma(\hat{y}_i)=\frac{1}{1+e^{-\hat{y}_i}}
+       \]
+     - Boosting objective at iteration \( t \):
+       \[
+       \mathcal{L}^{(t)}=\sum_{i=1}^{N} l\left(y_i,\hat{y}_i^{(t-1)}+f_t(x_i)\right)+\Omega(f_t)
+       \]
+       with tree regularization
+       \[
+       \Omega(f)=\gamma T+\frac{1}{2}\lambda\sum_{j=1}^{T}w_j^2
+       \]
+       where \( T \) is the number of leaves and \( w_j \) are leaf weights.
+   - **Parameters**:
+     - Base estimator: `xgboost.XGBClassifier(objective='binary:logistic', eval_metric='auc', random_state=42, n_jobs=-1, tree_method='hist')`
+     - Search method: `RandomizedSearchCV`
+     - CV: 5-fold stratified
+     - Scoring: `'roc_auc'`
+     - `n_iter = 40`
+     - Parameter search space:
+       - `n_estimators`: `[100, 200, 400, 600, 800]`
+       - `max_depth`: `[3, 4, 5, 6, 8]`
+       - `learning_rate`: `[0.01, 0.03, 0.05, 0.1, 0.2]`
+       - `subsample`: `[0.6, 0.8, 1.0]`
+       - `colsample_bytree`: `[0.6, 0.8, 1.0]`
+       - `min_child_weight`: `[1, 3, 5, 7]`
+       - `gamma`: `[0, 0.1, 0.3, 1.0]`
+       - `reg_lambda`: `[1, 5, 10]`
+   - **Thresholds**:
+     - Hard class call: predict class 1 if `predict_proba[:,1] >= 0.5`
+   - **Implementation constraints**:
+     - Tune on the training subset only and refit the best estimator on the full training data.
+     - Do not use early stopping tied to the held-out test set.
+     - Use the same preprocessed feature matrix as in the other models.
+
+8. **Goal 8: Evaluate and compare models**
+   - **Equations**:
+     - Accuracy:
+       \[
+       \text{Accuracy}=\frac{TP+TN}{TP+TN+FP+FN}
+       \]
+     - Sensitivity/recall for class 1:
+       \[
+       \text{Sensitivity}=\frac{TP}{TP+FN}
+       \]
+     - Specificity:
+       \[
+       \text{Specificity}=\frac{TN}{TN+FP}
+       \]
+     - ROC coordinates:
+       \[
+       TPR=\frac{TP}{TP+FN}, \quad FPR=\frac{FP}{FP+TN}
+       \]
+     - AUC: compute with `roc_auc_score(y_true, y_score)`
+   - **Parameters**:
+     - Probability source: `predict_proba[:,1]`
+     - Decision threshold: `0.5`
+   - **Implementation constraints**:
+     - Report the confusion matrix on the held-out test set for every model/task pair.
+     - Report ROC curves and AUC values for both training and test sets.
+     - Keep the positive class consistent with the original label coding: for mortality tasks class 1 means death; for horizon-specific survival tasks class 1 means survival to the horizon.
+     - Use identical evaluation code across Naive Bayes, Random Forest, and XGBoost.
+
+9. **Goal 9: SHAP-based interpretation for tree models**
+   - **Equations**:
+     - Additive explanation form:
+       \[
+       f(x)=\phi_0+\sum_{j=1}^{p}\phi_j
+       \]
+       where \( \phi_j \) is the SHAP contribution of feature \( j \).
+     - Global importance score for feature \( j \):
+       \[
+       I_j = \frac{1}{N_{\text{test}}}\sum_{i=1}^{N_{\text{test}}} |\phi_{ij}|
+       \]
+   - **Parameters**:
+     - Explainer: `shap.TreeExplainer(fitted_model)`
+     - Data for explanations: held-out test matrix
+     - Ranking rule: sort by `mean(abs(SHAP))`
+     - Display: top 10 features per model/task
+   - **Implementation constraints**:
+     - Apply SHAP only to Random Forest and XGBoost.
+     - If SHAP returns class-specific arrays, use the class-1 explanation values.
+     - Produce at least one global ranking plot per tree model/task; a bar plot is sufficient, and a beeswarm-style summary is preferred if stable.
+     - Interpret SHAP signs relative to class 1, which changes meaning across mortality versus survival tasks.
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything yourself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+'''
+
+# -- Run configuration --
+
+[run]
+initial_message = '''
+I want to reproduce the five colorectal cancer binary prediction tasks from the São Paulo registry using colorretal_labels.csv as the authoritative analytic table, with the fixed 25-predictor set and strict exclusion of all label-derived and follow-up leakage columns. Start by locking that cohort and constructing the five task-specific eligible datasets, using obito_cancer and obito_geral directly and applying the horizon filters for vivo_ano1, vivo_ano3, and vivo_ano5 with eligibility defined by ULTIDIAG ≥ 365, 1095, and 1825 days or observed failure before the horizon; use colorretal_pp.csv only to audit DTDIAG/DTULTINFO date arithmetic if needed. Then run chi-square feature–label associations with scipy.stats.chi2_contingency(correction=False), and for each task use a 75/25 stratified split with random_state=42, training-only most-frequent imputation, OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1), StandardScaler, GaussianNB, plus RandomizedSearchCV-tuned RandomForestClassifier and XGBClassifier under 5-fold stratified CV scored by ROC AUC, followed by held-out confusion matrices, train/test ROC-AUC, class-balance checks, and SHAP TreeExplainer summaries for the tree models.
+'''
+max_turns = 200

@@ -1,0 +1,408 @@
+{
+  "paper": {
+    "title": "Gut Microbiome Wellness Index 2 enhances health status prediction from gut microbiome taxonomic profiles",
+    "doi": "https://doi.org/10.1038/s41467-024-51651-9"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "Pooling and uniformly reprocessing published stool metagenomes yields a diverse training cohort with health-associated structure and a sparse Lasso feature set.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "A non-empty pooled training dataset artifact exists and is readable, containing per-sample phenotype labels and taxon-level features suitable for GMWI2 training.",
+          "paper_reference": "Fig.1a; Methods: Multi-study pooling of human stool metagenomes",
+          "expected": "A usable sample-level training matrix or equivalent serialized dataset for the pooled cohort is present.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*training_set*.*"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The pooled cohort size and class composition match the paper.",
+          "paper_reference": "Fig.1a",
+          "expected": "The pooled dataset contains 8069 stool metagenomes: 5547 healthy and 2522 non-healthy, assembled from 54 studies across 12 phenotypes.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*training_set*.*"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The study manifest reproduces the included-study roster and study-level annotations.",
+          "paper_reference": "Table 1",
+          "expected": "A study manifest lists the included studies with author/year, healthy vs non-healthy counts, sequencing platform, and country/geography consistent with the publication table.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*study*manifest*.*"
+        },
+        {
+          "id": "pf1.4",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The demographic summary shows the same broad geographic and subject-distribution pattern as the paper.",
+          "paper_reference": "Fig.1b",
+          "expected": "The cohort summary spans many countries and continents, shows a broad adult age distribution, and has roughly balanced known male/female labels.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*demograph*.*"
+        },
+        {
+          "id": "pf1.5",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Healthy and non-healthy pooled microbiome profiles remain significantly different in the multivariate analysis.",
+          "paper_reference": "Fig.2a",
+          "expected": "PERMANOVA/Adonis on pooled profiles gives R^2 = 1.2% and P = 0.001 for healthy vs non-healthy separation.",
+          "tolerance": "R^2 ±0.002 absolute; P ±50% relative",
+          "output_pattern": "stages/*/outputs/*permanova*.*"
+        },
+        {
+          "id": "pf1.6",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "A readable coefficient table for the trained Lasso-penalized logistic regression model exists, with taxon identifiers and signed coefficients.",
+          "paper_reference": "Fig.2b; Methods: Estimating disease likelihood using Lasso-penalized logistic regression",
+          "expected": "A non-empty model coefficient artifact is present and can be used to score samples.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*coeff*.*"
+        },
+        {
+          "id": "pf1.7",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The sparsity pattern of the final GMWI2 model matches the paper.",
+          "paper_reference": "Fig.2b; Methods",
+          "expected": "The model has 49 positive coefficients, 46 negative coefficients, and 3105 zero coefficients, for 95 non-zero coefficients out of 3200 taxa.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*coeff*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "GMWI2 scores derived from the pooled training cohort outperform GMWI and achieve higher accuracy for high-confidence samples in cross-validation.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Training-set, cutoff, and cross-validation metric artifacts are present and readable for GMWI2 benchmarking.",
+          "paper_reference": "Fig.3a-e; Methods: Evaluation of classification performance",
+          "expected": "Usable score/metric outputs exist for the training set, LOOCV, 10-fold CV, and cutoff analyses.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*training*metrics*.*"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Training-set discrimination matches the main result and exceeds the original GMWI baseline.",
+          "paper_reference": "Fig.3a",
+          "expected": "On the training set, GMWI2 reaches balanced accuracy 79.9%, with healthy accuracy 79.2%, non-healthy accuracy 80.6%, and Cliff's Delta 0.75. The original GMWI baseline is balanced accuracy 71.8% with Cliff's Delta 0.63.",
+          "tolerance": "accuracies ±0.5 percentage points; Cliff's Delta ±0.03",
+          "output_pattern": "stages/*/outputs/*training*metrics*.*"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Disease-specific distributions show the same directional separation as the paper.",
+          "paper_reference": "Fig.3b",
+          "expected": "The healthy group has higher GMWI2 scores than every disease phenotype distribution shown.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig3b*.png"
+        },
+        {
+          "id": "pf2.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Score-bin enrichment trends follow the confidence interpretation described in the paper.",
+          "paper_reference": "Fig.3c",
+          "expected": "More positive GMWI2 bins are enriched for truly healthy samples, more negative bins are enriched for truly non-healthy samples, and this trend is visually stronger than for GMWI.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig3c*.png"
+        },
+        {
+          "id": "pf2.5",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Training-set cutoff-performance tradeoff matches the reported values.",
+          "paper_reference": "Fig.3d",
+          "expected": "With |GMWI2| cutoffs of 0.5 and 1.0 on the training data, balanced accuracy rises to 85.8% and 91.0%, while retained sample counts are 6364 (78.9%) and 4712 (58.4%), respectively.",
+          "tolerance": "accuracy ±0.5 percentage points; counts ±0; retained percentages ±0.1 percentage points",
+          "output_pattern": "stages/*/outputs/*cutoff*training*.*"
+        },
+        {
+          "id": "pf2.6",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Cross-validation results reproduce the paper's main accuracy claims.",
+          "paper_reference": "Fig.3e",
+          "expected": "At cutoff 0, LOOCV balanced accuracy is 79.1% (78.6% healthy, 79.5% non-healthy) and 10-fold CV balanced accuracy is 79.0% (78.6% healthy, 79.3% non-healthy). At cutoff 1.0, LOOCV and 10-fold CV balanced accuracies are 90.4% and 90.2%, respectively.",
+          "tolerance": "accuracies ±0.5 percentage points",
+          "output_pattern": "stages/*/outputs/*cv*metrics*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "Inter-study validation shows GMWI2 generalizes across cohorts with stable held-out accuracy and AUC.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Per-study ISV metrics and ROC outputs are produced and readable.",
+          "paper_reference": "Fig.4a-b; Methods: Evaluation of classification performance",
+          "expected": "Usable held-out-study performance tables and ROC data/plots exist for inter-study validation.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*isv*.*"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Average ISV performance matches the reported robustness claim.",
+          "paper_reference": "Fig.4a",
+          "expected": "Mean inter-study-validation balanced accuracy is 75.8%, and restricting to samples with GMWI2 < -1 or > 1 raises it to 86.9%.",
+          "tolerance": "±1.0 percentage points",
+          "output_pattern": "stages/*/outputs/*isv*metrics*.*"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The held-out study scatter/bar relationship supports the same interpretation as the paper.",
+          "paper_reference": "Fig.4a",
+          "expected": "Held-out-study accuracy varies across studies, but there is no clear relationship between performance and held-out study sample size.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4a*.png"
+        },
+        {
+          "id": "pf3.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "ROC AUC values for the three evaluation schemes match the paper.",
+          "paper_reference": "Fig.4b",
+          "expected": "AUC is 0.88 on the training set, 0.87 in 10-fold CV, and 0.84 in inter-study validation.",
+          "tolerance": "±0.02",
+          "output_pattern": "stages/*/outputs/*roc*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "Applying the trained GMWI2 model to independent external cohorts reproduces healthy-versus-diseased separation and cohort-level accuracy.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "A readable external-validation scoring artifact exists for independent samples with predicted GMWI2 scores and cohort labels.",
+          "paper_reference": "Fig.5a-b",
+          "expected": "Usable external-validation sample scores and cohort annotations are present.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*external*validation*.*"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Overall external validation reproduces the reported class separation and accuracy.",
+          "paper_reference": "Fig.5a",
+          "expected": "The external validation set contains 1140 samples: 494 healthy and 646 non-healthy. Healthy scores are higher than non-healthy with P = 1.6 × 10^-43 (two-sided Mann-Whitney U), Cliff's Delta = 0.48, and balanced accuracy = 72.1%.",
+          "tolerance": "counts ±0; balanced accuracy ±1.0 percentage points; Cliff's Delta ±0.05; P ±50% relative",
+          "output_pattern": "stages/*/outputs/*external*validation*metrics*.*"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The reject-option cutoff improves external validation accuracy by the reported amount.",
+          "paper_reference": "Fig.5a",
+          "expected": "On the external validation set, |GMWI2| cutoffs of 0.5 and 1.0 raise balanced accuracy to 75.4% and 80.1%, while retaining 74.3% and 49.3% of samples, respectively.",
+          "tolerance": "accuracy ±1.0 percentage points; retained percentage ±1.0 percentage points",
+          "output_pattern": "stages/*/outputs/*external*cutoff*.*"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Cohort-level score distributions show the same directional pattern as the paper.",
+          "paper_reference": "Fig.5b",
+          "expected": "Healthy cohort distributions generally lie above disease cohort distributions, and the weakest healthy cohort still exceeds the pancreatic cancer cohort from the same study.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5b*.png"
+        },
+        {
+          "id": "pf4.5",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Cohort-level classification accuracies match the paper.",
+          "paper_reference": "Fig.5b",
+          "expected": "Cohort accuracies are H1 96.3% (130/135), H2 91.2% (52/57), H3 83.3% (25/30), H4 56.8% (21/37), H5 28.1% (66/235), pancreatic cancer 90.7% (39/43), Parkinson's disease 81.2% (398/490), and ankylosing spondylitis 80.5% (91/113).",
+          "tolerance": "accuracies ±1.0 percentage points; counts ±0",
+          "output_pattern": "stages/*/outputs/*external*cohort*metrics*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf5",
+      "name": "In IBS fecal microbiota transplantation recipients, GMWI2 increases only in patients reporting symptom relief.",
+      "items": [
+        {
+          "id": "pf5.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "A readable FMT longitudinal output exists with donor, baseline, and 6-month recipient GMWI2 values separated by response group.",
+          "paper_reference": "Fig.6a",
+          "expected": "Usable per-sample FMT GMWI2 results are present for donors and recipients before and after transplantation.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fmt*gmwi2*.*"
+        },
+        {
+          "id": "pf5.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The FMT cohort structure and the significant response-group result match the paper.",
+          "paper_reference": "Fig.6a",
+          "expected": "The IBS FMT analysis contains 22 recipients, split into 14 in the Effect group and 8 in the No Effect group, plus 17 donor samples. The Effect group shows a significant baseline-to-6-month increase with P = 0.039 (figure annotation; one-sided Wilcoxon signed-rank test).",
+          "tolerance": "counts ±0; P ±0.01",
+          "output_pattern": "stages/*/outputs/*fmt*gmwi2*.*"
+        },
+        {
+          "id": "pf5.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The response-group direction of change matches the paper.",
+          "paper_reference": "Fig.6a",
+          "expected": "Only the symptom-relief group shows a clear upward shift in GMWI2 after FMT, whereas the No Effect group does not show a comparable increase.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6a*.png"
+        }
+      ]
+    },
+    {
+      "id": "pf6",
+      "name": "During short-term dietary intervention, GMWI2 drops only under exclusive enteral nutrition and remains stable for vegan or omnivore diets.",
+      "items": [
+        {
+          "id": "pf6.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Diet-intervention time-course outputs exist for EEN, Vegan, and Omnivore groups across baseline and intervention days.",
+          "paper_reference": "Fig.6b",
+          "expected": "Usable per-timepoint GMWI2 outputs are present for all diet groups.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*diet*gmwi2*.*"
+        },
+        {
+          "id": "pf6.2",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The diet-intervention cohort size matches the paper.",
+          "paper_reference": "Results: In the second study26; Fig.6b",
+          "expected": "The diet-intervention analysis uses 30 healthy volunteers.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*diet*gmwi2*.*"
+        },
+        {
+          "id": "pf6.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The diet-group trajectories reproduce the paper's directional conclusion.",
+          "paper_reference": "Fig.6b",
+          "expected": "The exclusive enteral nutrition group shows a drop in GMWI2 by day 2 that persists thereafter, whereas the Vegan and Omnivore groups stay near baseline without a clear sustained shift.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6b*.png"
+        }
+      ]
+    },
+    {
+      "id": "pf7",
+      "name": "After broad-spectrum antibiotics, GMWI2 remains depressed long after alpha-diversity metrics begin to recover.",
+      "items": [
+        {
+          "id": "pf7.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Antibiotic-exposure time-course outputs exist for GMWI2, Shannon index, and species richness across sampling days.",
+          "paper_reference": "Fig.6c",
+          "expected": "Usable per-timepoint outputs are present for GMWI2 and the two alpha-diversity comparators.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*antibiotic*recovery*.*"
+        },
+        {
+          "id": "pf7.2",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The antibiotic longitudinal dataset structure matches the paper.",
+          "paper_reference": "Results: For the third study30; Fig.6c",
+          "expected": "The antibiotic study contains 12 healthy adults sampled at day 0, 4, 8, 42, and 180.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*antibiotic*recovery*.*"
+        },
+        {
+          "id": "pf7.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The recovery pattern after antibiotics matches the paper.",
+          "paper_reference": "Fig.6c",
+          "expected": "GMWI2 stays reduced relative to baseline through the last follow-up, while Shannon index and species richness show later partial recovery.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6c*.png"
+        }
+      ]
+    },
+    {
+      "id": "pf8",
+      "name": "In vitro prebiotic fermentation increases GMWI2 for several oligosaccharides relative to no-substrate controls.",
+      "items": [
+        {
+          "id": "pf8.1",
+          "priority": "supplementary",
+          "check_type": "pipeline",
+          "verify": "A prebiotic-fermentation summary artifact exists with GMWI2 values for controls and oligosaccharide treatments.",
+          "paper_reference": "Fig.6d",
+          "expected": "Usable group-level or replicate-level GMWI2 outputs are present for the fermentation experiment.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*prebiotic*gmwi2*.*"
+        },
+        {
+          "id": "pf8.2",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The prebiotic experiment size and design match the paper.",
+          "paper_reference": "Results: In the final study31; Fig.6d",
+          "expected": "The experiment pools feces from 19 healthy adults and evaluates 7 study groups in triplicate.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*prebiotic*gmwi2*.*"
+        },
+        {
+          "id": "pf8.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The ordering and significance pattern across prebiotic conditions matches the paper.",
+          "paper_reference": "Fig.6d",
+          "expected": "The no-substrate 24 h control is lower than the no-substrate 0 h control; fructooligosaccharide, inulin, and galactooligosaccharide exceed the 0 h control; and those three plus xylooligosaccharide exceed the 24 h control, while 2'-fucosyllactose does not show the same improvement pattern.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6d*.png"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

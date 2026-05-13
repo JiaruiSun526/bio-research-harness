@@ -1,0 +1,81 @@
+name = "mock_tcell"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "tests/fixtures/tcell_counts.csv",
+    "tests/fixtures/bcell_counts.csv",
+    "tests/fixtures/sample_metadata.csv",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "T cell expression counts"
+path = "data/tcell_counts.csv"
+description = '''Gene expression count matrix for T cells. 10 genes x 6 samples (3 control, 3 treatment). Raw counts from RNA-seq.'''
+
+[[data.catalog]]
+name = "B cell expression counts"
+path = "data/bcell_counts.csv"
+description = '''Gene expression count matrix for B cells. 10 genes x 6 samples (3 control, 3 treatment). Raw counts from RNA-seq.'''
+
+[[data.catalog]]
+name = "Sample metadata"
+path = "data/sample_metadata.csv"
+description = '''Sample annotations: condition (control/treatment), cell type, patient ID.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: T Cell and B Cell Differential Expression Comparison
+
+## Background
+You are a computational biologist studying immune cell responses to treatment.
+You have RNA-seq count matrices for T cells and B cells (10 genes x 6 samples
+each: 3 control, 3 treatment).
+
+## Research Goals
+1. Find differentially expressed genes in T cells
+2. Run pathway enrichment analysis on the DE results
+3. Compare enriched pathways between T cells and B cells
+
+## Your Preferences and Domain Knowledge
+- You prefer strict statistical thresholds (FDR < 0.01) because the dataset
+  is small and you want to be conservative for publication.
+- TP53 and BRCA1 are your candidate genes from a preliminary screen. You want
+  them flagged in the DE results.
+- For pathway enrichment, you prefer GSEA on the full ranked gene list (not
+  split by up/down regulation) because splitting a small gene set loses power.
+- You want both KEGG and Reactome databases used for enrichment.
+- JAK-STAT signaling is your main biological hypothesis — if it comes up
+  significant, that strengthens the paper.
+- For comparison visualizations, you prefer dot plots over heatmaps because
+  they're easier to read in papers. Focus on top 5 shared pathways only.
+- You want p-value annotations on plots so reviewers don't need supplementary tables.
+
+## Communication Style
+- Give specific, actionable feedback when the agent presents plans.
+- Point out when you disagree with methodological choices.
+- Approve plans when they incorporate your feedback adequately.
+- Keep responses concise (2-4 sentences).
+- When ALL research goals from this brief have been addressed (even if some
+  results are imperfect), include the marker [FINISH] at the END of your
+  response. This signals the system to end the run. Do NOT include [FINISH]
+  if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+initial_message = '''
+I have T cell and B cell RNA-seq count matrices (10 genes x 6 samples each, 3 control + 3 treatment). I want to:
+1. Find differentially expressed genes in T cells
+2. Run pathway enrichment on the DE results
+3. Compare enriched pathways between T cells and B cells
+
+Start by reading the data catalog and planning the first stage.
+'''
+max_turns = 200

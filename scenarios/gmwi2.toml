@@ -1,0 +1,340 @@
+name = "gmwi2"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/gmwi2_gut_microbiome/data/Test_dataset_metaphlan3.csv",
+    "papers/gmwi2_gut_microbiome/data/longitudinal_cases.csv",
+    "papers/gmwi2_gut_microbiome/data/training_set.csv",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "MetaPhlAn3 test microbiome matrix"
+path = "data/Test_dataset_metaphlan3.csv"
+description = '''Sample-by-feature table for 1,140 metagenomic samples. Rows are individual samples keyed by Study_ID and Sample Accession; most columns are MetaPhlAn3 taxonomic lineage features (k__/p__/.../s__) with sparse numeric values that appear to be relative abundances, plus sample-level labels/metadata at the end (is_healthy, Continent, Phenotype). Use this file as the labeled test/evaluation set; its feature space differs from the training files, so align on shared taxon columns before scoring models or comparing cohorts.'''
+
+[[data.catalog]]
+name = "Longitudinal case microbiome time series"
+path = "data/longitudinal_cases.csv"
+description = '''Longitudinal MetaPhlAn-style abundance matrix for 589 samples from repeated case subjects. Rows are samples, with identifiers Study_ID, Sample Accession, and Subject_ID; taxonomic lineage columns encode sparse numeric abundance features, and trailing metadata include health_status/host_diet and timepoint, plus an unlabeled UNKNOWN.1 column that should be inspected before use. Use this file for within-subject, temporal, or progression analyses rather than as a simple cross-sectional training table.'''
+
+[[data.catalog]]
+name = "Labeled microbiome training matrix"
+path = "data/training_set.csv"
+description = '''Large MetaPhlAn-style training table with rows as samples identified by Study_ID and Sample Accession and thousands of taxonomic lineage columns holding sparse numeric abundance features. In addition to outcome labels (is_healthy, Phenotype), it includes demographic covariates such as Age, Sex, and Continent, and also contains an UNKNOWN.1 column that may be an import artifact. Use this as the primary supervised-learning training dataset; if combining with the test or longitudinal files, harmonize differing taxon columns and metadata fields first.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: gmwi2
+
+## Background
+We are developing a disease-agnostic gut microbiome classifier that maps stool shotgun metagenome taxonomic profiles to a continuous wellness score reflecting the log-odds of being healthy rather than diseased. The discovery dataset is a pooled, harmonized collection of human stool metagenomes across many published studies and disease phenotypes; locally, `training_set.csv` is the processed pooled discovery matrix, `Test_dataset_metaphlan3.csv` is the processed external validation matrix, and `longitudinal_cases.csv` contains the processed longitudinal/intervention cohorts. The main question is whether a sparse taxon-based model built from MetaPhlAn3 profiles can robustly separate healthy from non-healthy gut microbiomes across studies, geographies, and interventions.
+
+## Research Goals
+1. Reconstruct the discovery cohort definitions and binary health labels from the harmonized stool metagenome profiles, preserving the study-level structure and the exact healthy/non-healthy inclusion rules.
+2. Reproduce the upstream metagenomic preprocessing and taxonomic profiling workflow, or verify that the supplied CSVs already represent the post-QC MetaPhlAn3 stage needed for downstream modeling.
+3. Perform exploratory analysis of gut microbiome composition differences between healthy and non-healthy groups using ordination and variance-partition tests.
+4. Build the GMWI2 classifier from binary taxon presence/absence across all measured taxonomic ranks using Lasso-penalized logistic regression, and compute per-sample GMWI2 scores.
+5. Evaluate score distributions and classification behavior on the full discovery cohort, including reject-option cutoffs and baseline comparisons against species-level α-diversity and the earlier GMWI model.
+6. Assess model robustness with leave-one-out cross-validation, repeated 10-fold cross-validation, and inter-study validation.
+7. Apply the fixed discovery-trained model to independent external validation cohorts and quantify pooled and cohort-level predictive behavior.
+8. Reanalyze the longitudinal/intervention datasets to track gut microbiome wellness changes over time and across treatment conditions.
+9. Recreate the end-to-end scoring workflow so that raw stool shotgun metagenomes can be converted into GMWI2 scores with the same preprocessing and model assumptions.
+
+## Methodological Preferences
+- Use a mixed-language workflow:
+  - **Python** for preprocessing and model fitting: `bowtie2`, `FastQC`, `Trimmomatic`, `MetaPhlAn3`, `scikit-learn`.
+  - **R** for ordination/statistical ecology: `stats::prcomp`, `vegan::vegdist`, `vegan::adonis2`, and standard hypothesis-testing functions.
+- Treat the supplied local files as the primary processed inputs for the modeling stages:
+  - `training_set.csv`: pooled discovery/training taxonomic profiles with metadata including `Study_ID`, `is_healthy`, `Age`, `Sex`, `Continent`, `Phenotype`.
+  - `Test_dataset_metaphlan3.csv`: external validation taxonomic profiles with `Study_ID`, `is_healthy`, `Continent`, `Phenotype`.
+  - `longitudinal_cases.csv`: longitudinal/intervention taxonomic profiles with `Study_ID`, `Subject_ID`, `health_status/host_diet`, `timepoint`.
+- Preserve the paper’s binary phenotype definitions:
+  - **Healthy**: no reported disease and no abnormal body weight condition.
+  - **Non-healthy**: clinically diagnosed disease of any included phenotype.
+- If rebuilding from raw reads, use:
+  - `bowtie2` v2.4.4 against human reference genome **GRCh38/hg38** with default settings for host-read removal.
+  - `FastQC` v0.11.8 to extract overrepresented sequences and identify adapter content.
+  - `Trimmomatic` v0.39 with `ILLUMINACLIP`, seed mismatches = 2, palindrome clip threshold = 30, simple clip threshold = 10, minimum adapter length = 2 bp; trim leading/trailing bases with Phred < 3; discard reads < 60 bp.
+  - `MetaPhlAn3` v3.0.13 with default parameters and database `mpa_v30_CHOCOPhlAn_201901`.
+- Sample/study exclusion rules for the pooled discovery cohort:
+  - Exclude non-Illumina sequencing.
+  - Exclude virome / virus-like-particle-focused stool studies.
+  - Exclude studies with < 40 total samples before harmonized reprocessing.
+  - In repeated-sampling studies, keep only the first/baseline sample per subject.
+  - Exclude samples with < 1,000,000 reads before QC.
+  - After profiling, exclude samples with > 90% unmapped reads, > 25% unknown taxa, or < 100 identified taxa.
+  - After all filtering, exclude studies with < 20 remaining samples.
+  - Exclude intervention samples from discovery training.
+  - Exclude subjects with BMI-defined underweight, overweight, or obesity if not clinically diseased.
+  - Exclude heavy alcohol/drug use, age > 100, newborn/infant/child cohorts, early-stage disease controls, rare/genetic disorders, and non-colon cancers specified by the design.
+- Convert taxonomic relative abundances to **binary presence/absence** before model fitting.
+- Presence threshold: taxon is present if relative abundance **>= 0.00001** (0.001%); absent otherwise.
+- Use **all measurable taxonomic ranks** present in the harmonized dataset; do not restrict features to species only.
+- Perform PCA on the **binary** presence/absence matrix with `stats::prcomp`.
+- Compute Bray–Curtis dissimilarity from **relative abundance** profiles with `vegan::vegdist(method = "bray")`.
+- Test healthy vs non-healthy compositional separation with `vegan::adonis2(..., permutations = 999)`.
+- Fit the classifier with `sklearn.linear_model.LogisticRegression` using:
+  - `penalty="l1"`
+  - `solver="liblinear"`
+  - `class_weight="balanced"`
+  - `random_state=42`
+  - inverse regularization strength **`C = 0.03`**
+- Use nested cross-validation under an inter-study validation framework only for confirming/tuning `C`; if exact tuning grid is unavailable, hold `C = 0.03` fixed for faithful reproduction of the released model.
+- Primary evaluation metric: **balanced accuracy**.
+- Also report:
+  - healthy-group accuracy
+  - non-healthy-group accuracy
+  - ROC curves and AUC
+  - retained-sample fraction under reject-option cutoffs
+  - Cliff’s Delta effect size for score-distribution separation
+  - Pearson correlation (GMWI2 vs GMWI if the prior implementation is available)
+  - Spearman associations with available metadata
+- Cross-validation strategy:
+  - **LOOCV**
+  - **10-fold CV**, repeated **10 times** with shuffled folds, then averaged
+  - **Inter-study validation (ISV)**: leave one `Study_ID` out, train on all remaining studies, test on the held-out study
+- Reject-option analysis:
+  - Evaluate at minimum `c = 0`, `0.5`, and `1.0` for `|GMWI2|`.
+  - Optionally trace the full cutoff–accuracy tradeoff over a fine grid of score magnitudes.
+- Baseline comparators:
+  - species-level **Shannon index**
+  - species-level **Simpson index**
+  - species-level **richness**
+  - earlier **GMWI** model using the authors’ previous implementation, not an ad hoc re-derivation
+- Statistical testing:
+  - Healthy vs non-healthy score comparisons: two-sided Mann–Whitney U / Wilcoxon rank-sum.
+  - Healthy vs each disease phenotype: two-sided Mann–Whitney U / Wilcoxon rank-sum.
+  - FMT responder/non-responder within-group pre/post comparisons: one-sided paired `wilcox.test`.
+  - Diet and antibiotic longitudinal within-subject comparisons vs baseline: two-sided paired `wilcox.test`.
+  - Prebiotic fermentation group comparison: `stats::aov` followed by `stats::TukeyHSD`.
+- Plot preferences:
+  - PCA scatter with 95% confidence ellipses and top loading vectors
+  - coefficient plot sorted by logistic-regression weight
+  - box/violin plots of GMWI2 and α-diversity
+  - cutoff-vs-balanced-accuracy plus retained-sample curve
+  - study-wise ISV accuracy trace with held-out sample counts
+  - ROC curves for training, CV, and ISV
+  - longitudinal paired boxplots / line overlays
+  - prebiotic group barplots with triplicate points and SD bars
+
+## What to Approve
+- Plans that preserve the exact healthy/non-healthy definitions and use `Study_ID` to maintain study boundaries.
+- Use of **binary presence/absence** taxon features with the **0.00001** relative-abundance threshold.
+- Use of **all taxonomic ranks** rather than species-only modeling.
+- Logistic regression with **L1 penalty**, **LIBLINEAR**, **balanced class weights**, `random_state=42`, and **`C=0.03`**.
+- Separate treatment of the three model-evaluation regimes: full discovery refit, split-wise CV refits, and fixed-model external/longitudinal application.
+- Reporting balanced accuracy, class-specific accuracies, ROC/AUC, reject-option retained fraction, and distributional effect sizes.
+- Correct one-sided vs two-sided testing in the longitudinal analyses.
+- Use of the local processed matrices for downstream modeling, with the raw-read pipeline reproduced only if raw accessions are explicitly being rebuilt.
+
+## What to Push Back On
+- Fitting the classifier directly on relative abundances instead of presence/absence.
+- Dropping higher-rank taxa or collapsing the feature space to species only.
+- Using random train/test splits as a substitute for inter-study validation.
+- Refitting on the external validation set or longitudinal cohorts before scoring them.
+- Ignoring exclusion rules that define the discovery cohort.
+- Treating overweight/obesity-only subjects as healthy or as diseased contrary to the design.
+- Reporting only overall accuracy or only AUROC without balanced accuracy and per-class accuracy.
+- Replacing `MetaPhlAn3` with another profiler, or replacing L1-logistic regression with a different model class, without explicitly framing it as a non-faithful extension.
+- Overinterpreting the score as causal or as a disease-specific diagnostic.
+
+## Domain Interests
+- A convincing analysis should show that the healthy group occupies higher GMWI2 values than the pooled diseased group and that the separation is stronger than simple species-level α-diversity baselines.
+- The reject-option behavior should be monotonic: increasing `|GMWI2|` cutoff should improve balanced accuracy while reducing retained sample count.
+- LOOCV and repeated 10-fold CV should closely track the discovery-cohort performance if overfitting is controlled.
+- ISV should be somewhat lower than random-split CV but still stable across held-out studies, without a clear dependence on held-out study size.
+- External validation should preserve the directionality of the score even in disease types not used for model training.
+- In the longitudinal cohorts, interventions expected to improve gut health should shift GMWI2 upward, and disruptive interventions should shift it downward; these shifts may be more interpretable than α-diversity alone.
+
+## Implementation Specifications
+1. **Goal 1: Reconstruct the pooled cohort and labels**
+   - **Thresholds**:
+     - Healthy = no reported disease **and** no abnormal body weight condition.
+     - Underweight: `BMI < 18.5`
+     - Overweight: `25 <= BMI < 30`
+     - Obesity: `BMI >= 30`
+     - Exclude age `> 100` years.
+     - Exclude studies with `< 40` total samples before harmonized reprocessing.
+     - After all sample-level filtering, exclude studies with `< 20` retained samples.
+     - In repeated-measures studies used for discovery training, keep **only the first/baseline sample** per subject.
+   - **Implementation constraints**:
+     - For the supplied local files, use `is_healthy` as the immediate binary label, but verify that downstream filtering does not contradict the design.
+     - Use `Study_ID` as the unit for inter-study validation.
+     - Use `training_set.csv` as the discovery matrix, `Test_dataset_metaphlan3.csv` as the external validation matrix, and `longitudinal_cases.csv` as the longitudinal matrix.
+
+2. **Goal 2: Reproduce preprocessing and taxonomic profiling**
+   - **Parameters**:
+     - Human depletion: `bowtie2` v2.4.4, reference `GRCh38/hg38`, default parameters.
+     - Adapter identification: `FastQC` v0.11.8.
+     - Read trimming: `Trimmomatic` v0.39.
+   - **Thresholds**:
+     - Pre-QC read-count exclusion: `< 1,000,000` reads.
+     - `Trimmomatic`:
+       - seed mismatches = `2`
+       - palindrome clip threshold = `30`
+       - simple clip threshold = `10`
+       - minimum adapter length = `2` bp
+       - trim leading/trailing bases with `Phred < 3`
+       - discard reads `< 60` bp
+     - Post-profiling sample exclusion:
+       - unmapped reads `> 90%`
+       - unknown taxa `> 25%`
+       - identified taxa `< 100`
+   - **Implementation constraints**:
+     - Taxonomic profiling must use `MetaPhlAn3` v3.0.13 with default parameters and database `mpa_v30_CHOCOPhlAn_201901`.
+     - If using the supplied CSVs rather than raw accessions, treat them as the authoritative post-`MetaPhlAn3` matrices and do not re-profile them.
+
+3. **Goal 3: Exploratory PCA and PERMANOVA**
+   - **Equations**:
+     - Presence indicator for taxon `j` in sample `i`:
+       - `x_ij = 1` if `a_ij >= 0.00001`
+       - `x_ij = 0` otherwise
+     - Bray–Curtis dissimilarity between samples `i` and `k` using relative abundances `a_ij`:
+       - `BC_ik = sum_j |a_ij - a_kj| / sum_j (a_ij + a_kj)`
+   - **Parameters**:
+     - PCA: `stats::prcomp` on the binary presence/absence matrix.
+     - Distance calculation: `vegan::vegdist(method = "bray")` on relative-abundance profiles.
+     - PERMANOVA: `vegan::adonis2(..., permutations = 999)`.
+   - **Thresholds**:
+     - Presence/absence threshold = `0.00001` relative abundance.
+   - **Implementation constraints**:
+     - Use all retained taxonomic clades across all measurable ranks.
+     - Plot 95% confidence ellipses for healthy and non-healthy groups.
+     - Display the top 10 loading vectors by PC1/PC2 magnitude if reproducing the PCA figure style.
+
+4. **Goal 4: Fit the GMWI2 classifier and compute scores**
+   - **Equations**:
+     - For sample `i`, define binary feature vector:
+       - `x_i = (x_i^1, x_i^2, ..., x_i^n)`
+     - Let `y_i = 1` for healthy and `y_i = 0` for non-healthy.
+     - Objective:
+       - `theta* = argmin_{theta in R^n} C * sum_{i=1}^m alpha(y_i) * [ y_i log(h_theta(x_i)) + (1-y_i) log(1-h_theta(x_i)) ] + ||theta||_1`
+     - Hypothesis:
+       - `h_theta(x_i) = P(y_i = 1 | x_i, theta) = sigma(theta^T x_i) = 1 / (1 + exp(-theta^T x_i))`
+     - Class-balance weight:
+       - `alpha(y_i) = m / (2 * sum_{j=1}^m I[y_j = y_i])`
+     - GMWI2 score for test sample `x_test`:
+       - `GMWI2(x_test) = (theta*)^T x_test`
+     - Cutoff-based classification:
+       - non-healthy if `GMWI2(x_test) < -c`
+       - defer if `-c <= GMWI2(x_test) <= c`
+       - healthy if `GMWI2(x_test) > c`
+   - **Parameters**:
+     - `n = 3200` taxonomic features in the harmonized discovery feature space.
+     - `m = 8069` discovery samples if reconstructing the full pooled cohort.
+     - Logistic regression settings:
+       - `penalty="l1"`
+       - `solver="liblinear"`
+       - `class_weight="balanced"`
+       - `random_state=42`
+       - `C=0.03`
+   - **Thresholds**:
+     - Taxon presence = relative abundance `>= 0.00001`
+     - Default cutoff `c = 0`
+     - Reject-option examples: `c = 0.5`, `1.0`
+   - **Implementation constraints**:
+     - Fit on the **binary** feature matrix only.
+     - Use all measurable taxonomic ranks; do not prefilter to species-only.
+     - For external and longitudinal scoring, align features to the discovery feature space; set unseen discovery features to `0` if absent in a target matrix and ignore extra target-only columns.
+
+5. **Goal 5: Evaluate training-set behavior and baseline comparators**
+   - **Equations**:
+     - Healthy accuracy:
+       - `Acc_H = (# correctly predicted healthy among actual healthy) / (# actual healthy)`
+     - Non-healthy accuracy:
+       - `Acc_NH = (# correctly predicted non-healthy among actual non-healthy) / (# actual non-healthy)`
+     - Balanced accuracy:
+       - `BA = (Acc_H + Acc_NH) / 2`
+     - Cliff’s Delta for two score distributions `X` and `Y`:
+       - `d = P(X > Y) - P(X < Y)`
+     - Shannon index at species level:
+       - `H = -sum_j p_j log(p_j)`
+     - Richness:
+       - `S = count of species with p_j > 0`
+   - **Parameters**:
+     - Species-level baselines:
+       - `vegan::diversity(index = "shannon")`
+       - `vegan::diversity(index = "simpson")`
+       - `vegan::specnumber`
+     - GMWI baseline:
+       - use the authors’ prior implementation rather than re-derive manually.
+   - **Thresholds**:
+     - Evaluate at minimum cutoffs `c in {0, 0.5, 1.0}`.
+   - **Implementation constraints**:
+     - Use the full discovery-trained `theta*` for this stage.
+     - Compare GMWI2 vs healthy/non-healthy with a **two-sided** Mann–Whitney U / Wilcoxon rank-sum test.
+     - Compare healthy vs each disease phenotype separately with the same two-sided test.
+
+6. **Goal 6: Cross-validation and inter-study validation**
+   - **Parameters**:
+     - LOOCV: one sample left out at a time.
+     - 10-fold CV: shuffle folds and repeat **10** times; average the resulting metrics.
+     - ISV: leave one `Study_ID` out per iteration; train on all remaining studies; test only on the held-out study.
+     - ROC/AUC: compute from held-out prediction scores for discovery/CV/ISV comparisons.
+   - **Thresholds**:
+     - Report metrics at minimum `c = 0`, `0.5`, and `1.0`.
+   - **Implementation constraints**:
+     - Refit the entire L1-logistic model **inside every split**; do not reuse full-discovery coefficients during CV or ISV.
+     - Preserve study boundaries exactly in ISV using `Study_ID`.
+     - For held-out studies containing only one phenotype, report cohort accuracy for that phenotype; for mixed-phenotype held-out studies, report balanced accuracy.
+     - Also report a pooled ROC/AUC over all held-out predictions.
+
+7. **Goal 7: External validation**
+   - **Parameters**:
+     - Apply the fixed discovery-trained `theta*` from Goal 4 to `Test_dataset_metaphlan3.csv`.
+     - Use two-sided Mann–Whitney U / Wilcoxon rank-sum for pooled healthy vs non-healthy GMWI2 distributions.
+     - Compute Cliff’s Delta on the pooled external score distributions.
+   - **Thresholds**:
+     - Evaluate classification at `c = 0`, `0.5`, and `1.0`.
+   - **Implementation constraints**:
+     - Do **not** refit the model on the external set.
+     - Score the pooled external set and then stratify by `Study_ID` and `Phenotype` for cohort-wise summaries.
+     - Align external features to the discovery feature space before scoring.
+
+8. **Goal 8: Longitudinal/intervention demonstrations**
+   - **Parameters**:
+     - Use `longitudinal_cases.csv`.
+     - Identify the four study blocks by `Study_ID` plus `health_status/host_diet` and `timepoint`.
+   - **Thresholds**:
+     - FMT in IBS:
+       - compare baseline vs 6-month within-subject values separately in “Effect” and “No Effect” recipient groups
+       - use **one-sided paired** `wilcox.test`
+     - Diet intervention:
+       - groups = Vegan, Omnivore, Exclusive Enteral Nutrition (EEN)
+       - compare each post-baseline day vs baseline within group
+       - use **two-sided paired** `wilcox.test`
+     - Antibiotic exposure:
+       - compare days `4`, `8`, `42`, and `180` vs day `0`
+       - use **two-sided paired** `wilcox.test`
+     - Prebiotic in vitro fermentation:
+       - groups = NS0, NS24, FOS24, IN24, GOS24, XOS24, 2FL24
+       - triplicate samples per group
+       - use `stats::aov` followed by `stats::TukeyHSD`
+   - **Implementation constraints**:
+     - Use the fixed discovery-trained model from Goal 4 for all scoring.
+     - For the antibiotic analysis, compute GMWI2 and also species-level Shannon and richness for direct contrast.
+     - For the prebiotic analysis, summarize group means and standard deviations and overlay triplicate points.
+     - Do not collapse longitudinal measurements to baseline-only here; all intended timepoints are part of this stage.
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything yourself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+- When ALL research goals from this brief have been addressed (even if some results are imperfect), include the marker [FINISH] at the END of your response. This signals the system to end the run. Do NOT include [FINISH] if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+max_turns = 200

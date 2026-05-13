@@ -1,0 +1,350 @@
+name = "turing_patterns"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/turing_patterns/data/disp_AAAB_P0.csv",
+    "papers/turing_patterns/data/disp_AAAB_P2.csv",
+    "papers/turing_patterns/data/disp_AAAB_P3.csv",
+    "papers/turing_patterns/data/disp_AABB_P2.csv",
+    "papers/turing_patterns/data/disp_AABB_P3.csv",
+    "papers/turing_patterns/data/disp_AABC_P2.csv",
+    "papers/turing_patterns/data/disp_AABC_P3.csv",
+    "papers/turing_patterns/data/disp_AAB_P1.csv",
+    "papers/turing_patterns/data/disp_ABCD_P1.csv",
+    "papers/turing_patterns/data/disp_ABC_P0.csv",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "AAAB P0 single-record parameter table"
+path = "data/disp_AAAB_P0.csv"
+description = '''Single-row CSV for the AAAB_P0 case encoded in the filename. The row links one ODE identifier to one PDE identifier and contains a scalar sB value, numeric values for species/complex labels A, B, AA, AB, and AAAB, plus matched D_* parameters for those same labels; the leading unnamed column is just a saved row index. Use this file when you need the specific AAAB P0 parameter record shown by ode_id/pde_id values such as AAAB_P0_4 and AAAB_P0_4_D_224.'''
+
+[[data.catalog]]
+name = "AAAB P2 single-record parameter table"
+path = "data/disp_AAAB_P2.csv"
+description = '''Single-row CSV for the AAAB_P2 case. Columns hold one ODE/PDE ID pair, sB, species/complex values for A, B, AA, AAB, and AAAB, and corresponding D_* numeric parameters; rows represent records, and this file has only one record. Use it for analyses specifically tied to the AAAB P2 subgroup, not the P0 or P3 AAAB files because the species columns differ.'''
+
+[[data.catalog]]
+name = "AAAB P3 single-record parameter table"
+path = "data/disp_AAAB_P3.csv"
+description = '''Single-row CSV for the AAAB_P3 case. The row contains identifiers plus numeric variables for sB, A, B, AB, AAB, and AAAB, with companion D_A, D_B, D_AB, D_AAB, and D_AAAB fields; the unnamed first column is an index carried into the CSV. Use this file when you need the AAAB P3 parameterization identified by values like ode_id AAAB_P3_737.'''
+
+[[data.catalog]]
+name = "AABB P2 single-record parameter table"
+path = "data/disp_AABB_P2.csv"
+description = '''Single-row CSV for the AABB_P2 case. It stores one ODE/PDE mapping along with sB, species/complex values for A, B, AA, AAB, and AABB, and matching D_* parameters for those columns. Use this file for the AABB P2 scenario only; it is distinct from the AABB P3 file because the listed complexes are different.'''
+
+[[data.catalog]]
+name = "AABB P3 single-record parameter table"
+path = "data/disp_AABB_P3.csv"
+description = '''Single-row CSV for the AABB_P3 case. Columns represent one record with ode_id, pde_id, sB, values for A, B, AB, AAB, and AABB, and corresponding D_* fields, while the first unnamed column is a retained row index. Use it for the AABB P3 subgroup rather than AABB P2, since the species columns here include AB instead of AA.'''
+
+[[data.catalog]]
+name = "AABC P2 single-record parameter table"
+path = "data/disp_AABC_P2.csv"
+description = '''Single-row CSV for the AABC_P2 case. The file contains one identifier pair plus sB, values for letter-coded species/complexes A, B, C, AB, AAB, and AABC, and matched D_* parameters for each of those labels. Use this file when the target composition is AABC and the subgroup in the filename is P2.'''
+
+[[data.catalog]]
+name = "AABC P3 single-record parameter table"
+path = "data/disp_AABC_P3.csv"
+description = '''Single-row CSV for the AABC_P3 case. It records one ODE/PDE mapping with sB, numeric values for A, B, C, AB, BC, ABC, and AABC, and corresponding D_* fields; rows are records, and there is only one record in this file. Choose this file for AABC P3 analyses, especially when BC and ABC terms are needed, since those columns are absent from the AABC P2 file.'''
+
+[[data.catalog]]
+name = "AAB P1 single-record parameter table"
+path = "data/disp_AAB_P1.csv"
+description = '''Single-row CSV for the AAB_P1 case. The columns hold one ODE/PDE identifier pair, sB, values for A, B, AB, and AAB, plus companion D_A, D_B, D_AB, and D_AAB parameters; the unnamed first column is a row index. Use this file for the AAB P1 scenario identified by values like ode_id AAB_P1_693.'''
+
+[[data.catalog]]
+name = "ABCD P1 single-record parameter table"
+path = "data/disp_ABCD_P1.csv"
+description = '''Single-row CSV for the ABCD_P1 case with the richest schema among these files. It contains one ODE/PDE mapping, sB, values for base species A, B, C, D and multiple higher-order combinations (AB, BC, BD, ABC, ABD, BCD, ABCD), together with matched D_* numeric parameters. Use this file when working on the four-letter ABCD P1 configuration rather than the smaller-composition files.'''
+
+[[data.catalog]]
+name = "ABC P0 single-record parameter table"
+path = "data/disp_ABC_P0.csv"
+description = '''Single-row CSV for the ABC_P0 case. The row stores one ODE/PDE ID pair along with sB, values for A, B, C, AB, BC, and ABC, and corresponding D_* parameters for those labels; the leading unnamed column is an exported index. Use this file for the ABC P0 configuration, such as the record with ode_id ABC_P0_782.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: turing_patterns
+
+## Background
+This project examines a hand-enumerated library of 23 mass-action reaction-diffusion networks built from all topologically distinct noncovalent complexes with up to four subunits, together with representative source-data rows for selected candidate PDE parameter sets (locally: `disp_*.csv`). The core question is whether constant synthesis, first-order degradation/removal, reversible binding, and diffusion are sufficient to produce Turing instability without assigning activator/inhibitor roles or imposing explicit feedback loops. A secondary, optional stage maps the same complex topologies onto protein-complex and miRNA-target interaction tables if those external inputs are available.
+
+## Research Goals
+1. Encode the full network library of 23 reaction paths over 11 characteristic complexes and generate dimensionless ODE/PDE models from mass-action rules.
+2. Pre-screen reaction-only systems for instability potential, using analytical elimination where practical and a numerical Hopf search across the synthesis control parameter for the main scan.
+3. For ODE parameter sets that show an encouraging bifurcation, sample diffusion coefficients and compute dispersion relations to identify finite-wavenumber Turing instability and classify instability type.
+4. Validate candidate Turing sets with direct PDE simulation on a 2D spatial domain and retain representative stationary patterns.
+5. Analyze network topology to detect the shared sequential heterocomplex motif and organize relationships among successful paths as subnetworks, homodimerization extensions, or special-case relabelings.
+6. Quantify parameter requirements and sensitivity for association affinities, monomer degradation rates, regulated degradation factors, and diffusion coefficients, including constrained perturbation scans.
+7. Use the provided `disp_*.csv` files as fixed sanity-check fixtures for path naming, species ordering, diffusion-order patterns, and plotting conventions.
+8. If external interaction tables are available, enumerate biological instances of the modeled complex configurations and perform functional enrichment; otherwise document this stage as not reproducible in the current sandbox.
+
+## Methodological Preferences
+- Use `numpy`, `pandas`, `scipy`, and `matplotlib` throughout; `seaborn` and `statsmodels` are optional for heatmaps and multiple-testing correction.
+- Encode reactions stoichiometrically rather than reducing them to signed activator/inhibitor graphs.
+- Prefer a direct equilibrium-tracking and eigenvalue-scanning workflow with `scipy.optimize.root`, `scipy.integrate.solve_ivp`, and `scipy.linalg.eigvals` instead of any dedicated continuation software.
+- Sample 10,000 reaction-parameter sets per model from log-uniform ranges spanning two orders of magnitude.
+- Use the synthesis rate of monomer B (`sB` / `σ_B`) as the control parameter for all multi-species models; use `σ_A` only for the single-monomer model.
+- Scan the control parameter over 0 to 120 and detect Hopf candidates from sign changes in the leading Jacobian real part together with nonzero imaginary part.
+- For each Hopf-positive ODE parameter set, sample 4,000 diffusion-coefficient sets and evaluate the dispersion curve on a wavenumber grid with step size 0.05.
+- Define a Turing candidate by temporal stability at zero wavenumber and positive growth at finite wavenumber.
+- Classify instability type from the full dispersion curve: finite-q positive lobe followed by re-stabilization at high q = Type 1; persistent high-q positivity = Type 2.
+- Validate dispersion-selected candidates with 2D PDE simulations rather than treating dispersion analysis alone as sufficient.
+- Preferred PDE setup: square domain of side length 100, spatial grid size 1.0, periodic boundaries, and free-B snapshots at final time.
+- If explicit Euler is too slow, use a semi-implicit Fourier IMEX update with `numpy.fft` and verify that it reproduces the same qualitative stationary pattern on at least one candidate.
+- Use histograms/density plots for sampled-vs-successful parameter distributions, 2D density plots for RDF ratios, heatmaps for perturbation sensitivity and diffusion skewness, network diagrams for topology, and scatterplots with linear regression + 95% CI for Hopf-vs-Turing frequency comparisons.
+- No k-fold cross-validation is relevant here; the validation hierarchy is reaction-only bifurcation screen → dispersion screen → PDE confirmation.
+- Treat the local `disp_*.csv` files as example candidate rows only; they contain steady-state concentrations and diffusion coefficients, not full kinetic parameter vectors.
+
+## What to Approve
+- A plan that builds the models from explicit reaction stoichiometry, keeps all species diffusive, and preserves the distinction between monomer degradation rates and complex-specific regulated degradation factors.
+- A Hopf-first screening pipeline that uses broad log-uniform parameter sampling, scans `σ_B` over the full range, and only then performs diffusion sampling and dispersion analysis.
+- A dispersion workflow that checks the entire curve, not just whether one finite-q point is positive.
+- PDE validation on representative candidate sets, with boundary conditions and numerical scheme stated clearly.
+- Parameter-sensitivity analysis that reruns the screen under constrained affinity/degradation regimes instead of only plotting raw sampled parameters.
+- Explicit use of the provided local files to confirm species/path mapping and diffusion-order trends for the ten named candidate paths.
+- Reasonable numerical tolerances, positivity checks, and fallback solvers for stiff or hard-to-converge equilibria.
+
+## What to Push Back On
+- Replacing the biochemical networks with generic two-species activator-inhibitor models or signed feedback graphs.
+- Skipping the encouraging-bifurcation stage and jumping directly to arbitrary PDE simulations without a reaction-only screen.
+- Calling a set “Turing” from a single positive eigenvalue at one q without verifying temporal stability at q = 0 and finite-q localization.
+- Omitting PDE confirmation after dispersion analysis.
+- Sampling only narrow parameter ranges, linear-uniform reaction rates, or too few parameter sets to resolve rare successful regions.
+- Ignoring regulated degradation factors or collapsing all degradation processes into one generic decay term.
+- Using the `disp_*.csv` fixtures as if they were complete parameter files for model fitting.
+- Reporting only example images without frequencies, perturbation effects, or dispersion-based validation metrics.
+
+## Domain Interests
+- Strong candidates should show a clean finite-wavelength instability while remaining temporally stable in the well-mixed limit.
+- I care most about whether the successful paths share the sequential heterocomplex motif centered on one monomer that participates in two heterocomplexes.
+- The most convincing mechanistic signal is sensitivity to relative degradation within complexes, especially ratios between trimer/tetramer and dimer regulated degradation factors.
+- Differential diffusion should be moderate rather than extreme; monomer diffusion can stay flexible while higher-order complexes often become diffusion-limited.
+- Successful simulations should settle into stationary spatial structure rather than transient waves or global collapse to another stable homogeneous state.
+- If you do the optional biological-mapping stage, the most compelling output is enrichment for development/patterning-related functions among secreted or membrane-associated candidates.
+
+## Implementation Specifications
+1. **Equations**:
+   - Represent each network as a stoichiometric system  
+     \[
+     \frac{d\mathbf{x}}{dt} = S\,\mathbf{v}(\mathbf{x};\theta)
+     \]
+     where \(\mathbf{x}\) contains all explicit species in the chosen path.
+   - For each free monomer \(M_i \in \{A,B,C,D\}\):  
+     \[
+     \varnothing \xrightarrow{\sigma_i} M_i,\qquad
+     M_i \xrightarrow{\chi_i} \varnothing
+     \]
+     giving source term \(+\sigma_i\) and sink term \(-\chi_i[M_i]\).
+   - After nondimensionalization, fix \(\sigma_A=1\) and \(\chi_B=1\). Use \(\sigma_B\) as the control parameter for multi-species models. If exact supplementary scaling for \(C,D\) is unavailable, set \(\sigma_C=\sigma_D=1\) as the pragmatic default.
+   - For each reversible binding step \(U+V \rightleftharpoons W\):  
+     \[
+     v_{\text{on}} = K_W[U][V],\qquad
+     v_{\text{off}} = [W]
+     \]
+     This substitutes the missing exact on/off parameterization by fixing the scaled reverse rate to 1 and letting \(K_W\) encode effective affinity.
+   - For degradation/removal of monomer type \(i\) inside complex \(W\):  
+     \[
+     v_{i,W}^{\text{deg}} = m_i(W)\,\chi_i\,\rho_{i,W}[W]
+     \]
+     where \(m_i(W)\) is the multiplicity of monomer \(i\) in \(W\), and \(\rho_{i,W}\) is \(\alpha_W,\beta_W,\gamma_W,\delta_W\) for \(i=A,B,C,D\), respectively.
+   - Product handling for complex degradation: send flux to the residual explicit complex if that residual is part of the encoded path; otherwise release the remaining subunits as free monomers. This keeps the model closed without inventing extra hidden species.
+   - PDE extension for each explicit species \(x_j\):  
+     \[
+     \frac{\partial x_j}{\partial t}=f_j(\mathbf{x};\theta)+D_j\nabla^2 x_j
+     \]
+   - Use this exact library of path names:  
+     A-1, AA-1, AB-1, AAA-1, AAB-1, AAB-2, ABC-1, AAAA-1, AAAA-2, AAAB-1, AAAB-2, AAAB-3, AAAB-4, AABB-1, AABB-2, AABB-3, AABB-4, AABC-1, AABC-2, AABC-3, AABC-4, ABCD-1, ABCD-2.
+   - **Parameters**:
+     - \(K_W\): scaled association affinity for each binding step; sampled.
+     - \(\chi_A,\chi_C,\chi_D\): monomer degradation rates relative to \(B\); sampled.
+     - \(\rho_{i,W}\): regulated degradation factors for subunits inside complexes; sampled.
+     - \(D_j\): diffusion coefficients for each explicit species; sampled later.
+   - **Thresholds**:
+     - Basal sampling ranges: \(K_W \in [10,10^3]\), \(\chi_i \in [10^{-1},10]\), \(\rho_{i,W}\in[10^{-1},10]\), all log-uniform.
+   - **Implementation constraints**:
+     - Encode the ten locally supported candidate paths with these exact explicit species sets inferred from the fixtures:  
+       `disp_AAB_P1.csv` → A, B, AB, AAB  
+       `disp_AAAB_P0.csv` → A, B, AA, AB, AAAB  
+       `disp_AAAB_P2.csv` → A, B, AA, AAB, AAAB  
+       `disp_AAAB_P3.csv` → A, B, AB, AAB, AAAB  
+       `disp_AABB_P2.csv` → A, B, AA, AAB, AABB  
+       `disp_AABB_P3.csv` → A, B, AB, AAB, AABB  
+       `disp_AABC_P2.csv` → A, B, C, AB, AAB, AABC  
+       `disp_AABC_P3.csv` → A, B, C, AB, BC, ABC, AABC  
+       `disp_ABC_P0.csv` → A, B, C, AB, BC, ABC  
+       `disp_ABCD_P1.csv` → A, B, C, D, AB, BC, BD, ABC, ABD, BCD, ABCD
+     - Treat fixture path index `P0/P1/P2/P3` as zero-based, so `P0 -> -1`, `P1 -> -2`, etc.
+
+2. **Equations**:
+   - For each sampled parameter vector and control parameter value \(\sigma\), solve for a positive equilibrium \(\mathbf{x}^*(\sigma)\) satisfying  
+     \[
+     f(\mathbf{x}^*;\sigma,\theta)=0
+     \]
+   - Compute the Jacobian  
+     \[
+     J(\sigma)=\left.\frac{\partial f}{\partial \mathbf{x}}\right|_{\mathbf{x}=\mathbf{x}^*(\sigma)}
+     \]
+   - A Hopf candidate occurs when a complex-conjugate eigenvalue pair crosses the imaginary axis:
+     \[
+     \max \Re(\lambda(J)) = 0,\qquad |\Im(\lambda_{\text{lead}})| > 10^{-3}
+     \]
+   - **Parameters**:
+     - Draw 10,000 reaction-parameter sets per model.
+     - Scan \(\sigma_B\) from 0 to 120 for multi-species models; \(\sigma_A\) from 0 to 120 for A-1.
+   - **Thresholds**:
+     - Positivity tolerance for equilibria: all state variables \(>10^{-10}\).
+     - Leading-real-part sign change between adjacent scan points flags a candidate interval.
+   - **Implementation constraints**:
+     - Use `scipy.optimize.root` with the previous equilibrium as the initial guess for continuation-like tracking.
+     - If root finding fails, integrate with `solve_ivp` to a long time from the previous equilibrium and retry.
+     - A grid of 241 to 601 control-parameter values is acceptable; refine candidate intervals by bisection or `brentq`.
+     - Formal Routh-Hurwitz elimination is optional. If deriving it manually is too time-consuming, run the same numerical Hopf screen on all 23 models and note that this substitutes for the impossibility proof.
+
+3. **Equations**:
+   - For each Hopf-positive equilibrium, build the diffusion-modified Jacobian
+     \[
+     \widetilde{J}(q)=J-q^2\operatorname{diag}(D_1,\ldots,D_n)
+     \]
+   - Define the dispersion relation
+     \[
+     \lambda_{\max}(q)=\max \Re\big(\text{eig}(\widetilde{J}(q))\big)
+     \]
+   - Turing condition:
+     \[
+     \lambda_{\max}(0)<0,\qquad \max_{q>0}\lambda_{\max}(q)>0
+     \]
+   - Type-1 condition: finite positive band followed by re-stabilization, i.e. \(\lambda_{\max}(q_{\text{end}})<0\).  
+     Type-2 condition: \(\lambda_{\max}(q)\) remains positive or trends upward at large \(q\).
+   - **Parameters**:
+     - For each Hopf-positive ODE parameter set, sample 4,000 diffusion vectors.
+     - Sample each \(D_j\) independently from the discrete grid  
+       \[
+       D_j \in \left\{1+\frac{19}{128}n: n=0,1,\ldots,128\right\}
+       \]
+       This matches the spacing visible in the provided fixture files.
+   - **Thresholds**:
+     - Wavenumber grid: \(q=0,0.05,0.10,\ldots,10.0\).
+     - Require the maximizer to occur at \(q>0.05\) to avoid numerical ambiguity at the origin.
+   - **Implementation constraints**:
+     - Only pass Hopf-positive ODE sets into the main diffusion screen.
+     - If you want to estimate the yield among Hopf-negative sets, do it on a small pilot subset only; do not let that replace the main pipeline.
+     - Record first x-intercept, minimum before intercept, maximum after intercept, and terminal value for later instability-type plots.
+
+4. **Equations**:
+   - Preferred explicit scheme for each species \(u_i\):
+     \[
+     u_i^{n+1}=u_i^n+\Delta t\left(f_i(\mathbf{u}^n)+D_i\Delta_h u_i^n\right)
+     \]
+   - Acceptable faster substitute under periodic boundaries:
+     \[
+     \widehat{u_i}^{\,n+1}(\mathbf{k})=
+     \frac{\widehat{u_i}^{\,n}(\mathbf{k})+\Delta t\,\widehat{f_i(\mathbf{u}^n)}(\mathbf{k})}
+     {1+\Delta t\,D_i|\mathbf{k}|^2}
+     \]
+     implemented with `numpy.fft.fft2` / `ifft2`.
+   - **Parameters**:
+     - Domain: \(L_x=L_y=100\).
+     - Spatial step: \(\Delta x=\Delta y=1.0\).
+     - Final time: \(t=500\).
+     - Initial condition: homogeneous steady state multiplied by \(1+0.01\eta(x,y)\), with \(\eta\) iid zero-mean noise.
+   - **Thresholds**:
+     - If using explicit Euler, use \(\Delta t=10^{-4}\).
+     - If using IMEX, start with \(\Delta t=10^{-2}\) and verify qualitative agreement on at least one benchmark candidate.
+   - **Implementation constraints**:
+     - Use periodic boundary conditions.
+     - Save snapshots of free \(B\) and at least one scalar stationarity metric, e.g. spatial variance plateau or frame-to-frame RMS change.
+     - Reject dispersion-selected candidates that collapse to a homogeneous state or drift to another stable equilibrium in the PDE run.
+
+5. **Parameters**:
+   - Treat each network as a binding hypergraph with monomers and complexes as nodes and binary binding reactions as hyperedges.
+   - **Thresholds**:
+     - Call the shared motif present if there exists a monomer \(X\) and two heterocomplexes \(H_1,H_2\) such that:
+       1. \(X \in H_1\) and \(X \in H_2\),
+       2. \(H_1\) and \(H_2\) each contain at least one species distinct from \(X\),
+       3. \(H_2\) is formed from \(H_1\) by one additional binding step or by adding a homodimerized partner,
+       4. the path includes regulated degradation/removal terms on these complexes.
+   - **Implementation constraints**:
+     - Define “subnetwork” by strict subset of binding steps after relabeling.
+     - Define “homodimerization extension” by adding a same-species self-binding step to a smaller path.
+     - Define “special case” by collapsing distinct labels in a more general path into repeated labels.
+
+6. **Equations**:
+   - For any screening condition, define pattern fraction
+     \[
+     p = \frac{N_{\text{Turing}}}{N_{\text{sampled}}}
+     \]
+   - Define perturbation effect relative to basal sampling
+     \[
+     E = 100\cdot\frac{p_{\text{perturbed}}-p_{\text{basal}}}{p_{\text{basal}}}
+     \]
+   - For RDF-ratio plots, compute
+     \[
+     r_{i,\text{tri/di}}=\frac{\rho_{i,\text{trimer}}}{\rho_{i,\text{dimer}}},\qquad
+     r_{i,\text{tet/di}}=\frac{\rho_{i,\text{tetramer}}}{\rho_{i,\text{dimer}}}
+     \]
+   - **Parameters**:
+     - Basal sampling: \(K_W \in [10,10^3]\), \(\chi_i \in [10^{-1},10]\), \(\rho_{i,W}\in[10^{-1},10]\).
+     - Same-affinity runs: set all \(K_W\) within a model to 10, 100, or 1000.
+     - Positive cooperativity run: \(K_{\text{dimer}}=100\), \(K_{\text{trimer}}=1000\), \(K_{\text{tetramer}}=10000\).
+     - Negative cooperativity run 1: \(K_{\text{dimer}}=1000\), \(K_{\text{trimer}}=100\), \(K_{\text{tetramer}}=10\).
+     - Negative cooperativity run 2: \(K_{\text{dimer}}=100\), \(K_{\text{trimer}}=10\), \(K_{\text{tetramer}}=1\).
+     - Restricted free-monomer degradation run 1: \(\chi_A=\chi_C=\chi_D=1\).
+     - Restricted free-monomer degradation run 2: sample one shared value \(\chi_{\text{shared}}\in[10^{-1},10]\) and set \(\chi_A=\chi_C=\chi_D=\chi_{\text{shared}}\).
+     - Restricted RDF run 1: sample all \(\rho_{i,W}\in[10^{-1},1]\).
+     - Restricted RDF run 2: sample all \(\rho_{i,W}\in[1,10]\).
+     - Restricted RDF run 3: sample one shared \(\rho_{\text{shared}}\in[10^{-1},10]\) and set all \(\rho_{i,W}=\rho_{\text{shared}}\).
+   - **Implementation constraints**:
+     - Rerun the full screen under each perturbation condition; do not reuse basal Turing calls.
+     - For diffusion summaries, compute skewness with `scipy.stats.skew` for each explicit species, then average skewness within each size class (monomer, dimer, trimer, tetramer) per model.
+     - For model-level comparison of Hopf frequency vs Turing frequency, use ordinary least squares and show a 95% confidence band.
+
+7. **Implementation constraints**:
+   - Use the local files strictly as validation fixtures for naming and diffusion patterns:
+     - `disp_ABC_P0.csv`
+     - `disp_AAB_P1.csv`
+     - `disp_AAAB_P0.csv`, `disp_AAAB_P2.csv`, `disp_AAAB_P3.csv`
+     - `disp_AABB_P2.csv`, `disp_AABB_P3.csv`
+     - `disp_AABC_P2.csv`, `disp_AABC_P3.csv`
+     - `disp_ABCD_P1.csv`
+   - Parse species columns as all non-`D_` columns other than identifiers and `sB`.
+   - Parse diffusion columns as `D_<species>`.
+   - Use these files to verify that `sB` falls on the continuation control axis, that higher-order complexes can be slower than their precursors, and that the path/species naming convention is internally consistent before running large screens.
+
+8. **Equations**:
+   - For enrichment of a term \(T\), use one-sided Fisher’s exact test on the \(2\times 2\) table of in-set vs out-of-set and annotated vs not annotated.
+   - Adjust multiple tests with Benjamini-Hochberg.
+   - **Parameters**:
+     - Protein-complex stage: input a complex-membership table and a physical-interaction edge table.
+     - RNA stage: input a miRNA-target site prediction table with conserved target sites.
+   - **Thresholds**:
+     - Use FDR < 0.05 for enriched terms.
+   - **Implementation constraints**:
+     - Count unique genes/proteins or mRNAs participating in at least one complex configuration; do not count every combinatorial subcomplex separately.
+     - For sequential binding support, require that the needed pairwise interactions for a chosen path are present in the physical-interaction table.
+     - If these external source tables are not already available locally, skip this goal and state explicitly that only the mechanistic screening was reproduced.
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if I designed everything myself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+- When ALL research goals from this brief have been addressed (even if some results are imperfect), include the marker [FINISH] at the END of your response. This signals the system to end the run. Do NOT include [FINISH] if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+max_turns = 200

@@ -1,0 +1,7 @@
+sample_id,condition,cell_type,patient
+sample_1_ctrl,control,tcell,P001
+sample_2_ctrl,control,tcell,P002
+sample_3_ctrl,control,tcell,P003
+sample_4_treat,treatment,tcell,P004
+sample_5_treat,treatment,tcell,P005
+sample_6_treat,treatment,tcell,P006

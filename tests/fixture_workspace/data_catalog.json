@@ -1,0 +1,19 @@
+{
+  "datasets": [
+    {
+      "name": "T cell expression counts",
+      "path": "data/tcell_counts.csv",
+      "description": "Gene expression count matrix for T cells. 10 genes x 6 samples (3 control, 3 treatment). Raw counts from RNA-seq."
+    },
+    {
+      "name": "B cell expression counts",
+      "path": "data/bcell_counts.csv",
+      "description": "Gene expression count matrix for B cells. 10 genes x 6 samples (3 control, 3 treatment). Raw counts from RNA-seq."
+    },
+    {
+      "name": "Sample metadata",
+      "path": "data/sample_metadata.csv",
+      "description": "Sample annotations: condition (control/treatment), cell type, patient ID."
+    }
+  ]
+}

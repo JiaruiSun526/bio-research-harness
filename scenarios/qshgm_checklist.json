@@ -1,0 +1,366 @@
+{
+  "paper": {
+    "title": "Machine learning aided construction of the quorum sensing communication network for human gut microbiota",
+    "doi": "https://doi.org/10.1038/s41467-022-30741-6"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "The three-module workflow integrates collected, expanded, and mined datasets into the QSHGM resource for human gut microbes.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "A workflow summary artifact exists and records the major datasets or stage outputs used to build QSHGM.",
+          "paper_reference": "Fig.1",
+          "expected": "A non-empty JSON/CSV/markdown summary is produced for the collecting, expanding, and mining workflow, with usable dataset-count fields or tables.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*workflow*summary*"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The reproduced workflow yields the same dataset sizes reported for the ten named datasets.",
+          "paper_reference": "Fig.1",
+          "expected": "Dataset sizes match the paper: Dataset I = 213, Dataset II = 818, Dataset III = 21,383, Dataset IV = 22,780, Dataset V = 14,573, Dataset VI = 5,320, Dataset VII = 9,253, Dataset VIII = 534, Dataset IX = 7,184, Dataset X = 28,567.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*dataset*counts*"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The reproduced workflow preserves the same high-level architecture and classifier usage as the paper.",
+          "paper_reference": "Fig.1",
+          "expected": "The workflow is organized into collecting, expanding, and mining modules, and the expanding stage uses four classifiers: DNN, SVM, KNN, and RF, whose outputs are combined before manual/functional mining into QSHGM.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*workflow*diagram*"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "The reported and annotated QS entries show dominant AHL synthases, dominant LuxR/TCS receptors, and a strongly skewed distribution of QS&TCS entries across gut microbes.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Phylogenetic tree artifacts and reported-entry summary tables are generated for the curated reported QS/QS&TCS entries.",
+          "paper_reference": "Fig.2A-F",
+          "expected": "Non-empty tree/image and count-summary outputs are produced for synthases, receptors, annotation counts, overlap analysis, and strain-level distributions.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig2*"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The curated validated QS dataset contains the same numbers of synthases and receptors as reported.",
+          "paper_reference": "Fig.2A-B / Results",
+          "expected": "Dataset I contains 84 autoinducer synthases and 129 QS receptors.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*reported_qs*trees*"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The phylogenetic trees reproduce the same broad composition and interpretation as the paper.",
+          "paper_reference": "Fig.2A-B",
+          "expected": "The synthase tree is dominated by AHL synthases, the receptor tree is dominated by LuxR-type and TCS receptors, and the AHL synthase and receptor trees show broadly similar structure consistent with the paper's coevolution claim.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig2a*"
+        },
+        {
+          "id": "pf2.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The reproduced annotation counts for the manually collected QS&TCS entries match the four categories in the paper.",
+          "paper_reference": "Fig.2C",
+          "expected": "Counts by annotation are: quorum sensing = 1,640; LuxR = 5,921; two-component = 15,703; tryptophanase = 66.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig2c*counts*"
+        },
+        {
+          "id": "pf2.5",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The seven-strain distribution panel shows the same dominant classes as described in the paper.",
+          "paper_reference": "Fig.2D",
+          "expected": "Across the selected SIHUMI strains, LuxR-type and two-component entries dominate the stacked distributions, with quorum-sensing and tryptophanase entries much smaller.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig2d*"
+        },
+        {
+          "id": "pf2.6",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The overlap analysis for Escherichia coli O157:H7 recovers the same shared LuxR/TCS entries reported in the paper.",
+          "paper_reference": "Fig.2E",
+          "expected": "Exactly 7 entries are shared by LuxR-type and two-component annotations in E. coli O157:H7: P69409, P0ACZ6, P0AGA8, P66798, P0AF30, P0AEL9, and Q8XE66.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig2e*overlap*"
+        },
+        {
+          "id": "pf2.7",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The strain-level distribution of collected QS&TCS entries matches the skew reported in the paper.",
+          "paper_reference": "Fig.2F",
+          "expected": "The cumulative distribution shows about 90% of strains contain fewer than 60 QS&TCS entries, and only 7 strains contain more than 150 entries.",
+          "tolerance": "±2 percentage points for the 90% statement; ±0 for the count of 7 strains",
+          "output_pattern": "stages/*/outputs/*fig2f*distribution*"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "AAC-based machine learning plus manual mining expands the QS repository, re-annotates uncharacterized proteins, and increases QSHGM coverage.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Classifier metrics, union-of-positives summaries, cluster summaries, and re-annotation tables for expanded entries are produced.",
+          "paper_reference": "Fig.3A-D / Table 1 / Table 2",
+          "expected": "Non-empty metric files and output tables/images exist for classifier evaluation, predicted positives, cluster assignments, final expanded-entry summary, BLASTP-based re-annotations, and Phyre2-based re-annotations.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*expanded_qs*"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The reproduced fivefold cross-validation metrics for the four classifiers agree with the values labeled in the paper.",
+          "paper_reference": "Fig.3A",
+          "expected": "Classifier metrics (from figure labels) are: DNN accuracy 0.823, precision 0.799, recall 0.820, F1 0.809; SVM accuracy 0.829, precision 0.798, recall 0.842, F1 0.819; KNN accuracy 0.864, precision 0.799, recall 0.943, F1 0.865; RF accuracy 0.896, precision 0.903, recall 0.869, F1 0.886.",
+          "tolerance": "±0.02",
+          "output_pattern": "stages/*/outputs/*classifier*metrics*"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The classifier outputs contain the same counts of annotated and uncharacterized positives as shown in the paper.",
+          "paper_reference": "Fig.3B",
+          "expected": "Annotated/uncharacterized positives are DNN 4,138/223, SVM 5,280/309, KNN 4,805/294, and RF 4,620/307.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig3b*positives*"
+        },
+        {
+          "id": "pf3.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The cluster breakdown of the 534 re-annotated uncharacterized entries matches the paper.",
+          "paper_reference": "Fig.3C",
+          "expected": "Cluster counts are: Acyl-CoA dehydrogenase 42; Enoyl-CoA hydratase 29; Histidine kinase 163; HTH domain-containing 106; OmpR family 48; Sigma 54-dependent 48; Others 9; Not QS 61; No annotation 28.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig3c*clusters*"
+        },
+        {
+          "id": "pf3.5",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The final expanded repository size and overall QSHGM growth match the paper.",
+          "paper_reference": "Fig.3D / Results",
+          "expected": "The final database contains 28,567 redundancy-removed entries for 818 gut microbes, including 7,184 extended entries; this is a 33.60% increase over the original 21,383 reported entries. The full set is composed of 1,882 QS synthases and 26,685 receptors.",
+          "tolerance": "±0 for counts; ±0.05 percentage points for 33.60%",
+          "output_pattern": "stages/*/outputs/*qshgm*summary*"
+        },
+        {
+          "id": "pf3.6",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The BLASTP re-annotation table contains the same number of entries as the paper.",
+          "paper_reference": "Table 1",
+          "expected": "Table 1 contains 20 expanded entries re-annotated using web BLASTP.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*table1*reannotation*"
+        },
+        {
+          "id": "pf3.7",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "Representative Table 1 re-annotations match the paper's biological interpretation.",
+          "paper_reference": "Table 1",
+          "expected": "The re-annotation table includes labels such as ArsR subfamily regulator, Autoinducer 2 ABC transporter, Beta-ketoacyl-ACP synthase III, Histidine kinase / Sensor histidine kinase, LuxR family regulator, Rgg/GadR/MutR family regulator, and Tryptophanase for the corresponding listed accessions.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*table1*reannotation*"
+        },
+        {
+          "id": "pf3.8",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The Phyre2 re-annotation table contains the same number of entries as the paper.",
+          "paper_reference": "Table 2",
+          "expected": "Table 2 contains 8 expanded entries re-annotated using Phyre2.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*table2*reannotation*"
+        },
+        {
+          "id": "pf3.9",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The Phyre2-based annotation pattern agrees with the paper.",
+          "paper_reference": "Table 2",
+          "expected": "Most Phyre2-based re-annotations correspond to AimR transcriptional regulator templates, with the remaining entries matching a signaling protein (tetratricopeptide repeat) and an AgrC ATP-binding domain.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*table2*reannotation*"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "The QSHGM resource can be queried to predict specific QS-language-mediated communications in example microbial consortia.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Example consortium interaction diagrams or edge lists are generated for the paper's named strain sets.",
+          "paper_reference": "Fig.4A-D",
+          "expected": "Non-empty network images or edge tables are produced for the example strain combinations used to illustrate predicted QS-based communication.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4*consortium*"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The simplest example reproduces the same pairwise prediction as the paper.",
+          "paper_reference": "Fig.4A",
+          "expected": "Escherichia coli O157:H7 and Bacteroides pectinophilus ATCC 43243 are connected through AI-2 only.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4a*"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The three-microbe example reproduces the same added language and strain relationship as the paper.",
+          "paper_reference": "Fig.4B",
+          "expected": "Enterobacteriaceae bacterium 9_2_54FAA adds indole-mediated communication while the AI-2 link between Escherichia coli O157:H7 and Bacteroides pectinophilus ATCC 43243 remains present.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4b*"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The four-microbe example reproduces the same enrichment of communication modes as the paper.",
+          "paper_reference": "Fig.4C",
+          "expected": "Adding Pseudomonas aeruginosa PAO1 introduces AHL-mediated links on top of the AI-2 and indole interactions already present.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4c*"
+        },
+        {
+          "id": "pf4.5",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The five-microbe example reproduces the same multi-language network as the paper.",
+          "paper_reference": "Fig.4D",
+          "expected": "Adding Burkholderia cepacia GG4 introduces HAQs and DSFs, yielding a consortium network that uses AI-2, indole, AHLs, HAQs, and DSFs.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4d*"
+        }
+      ]
+    },
+    {
+      "id": "pf5",
+      "name": "The constructed QSCN shows broad QS-language usage across 818 gut microbes, substantial language sharing, and heterogeneous taxonomic distribution at genus level.",
+      "items": [
+        {
+          "id": "pf5.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Bipartite QSCN outputs, overlap analyses, and genus-level clustering artifacts are generated.",
+          "paper_reference": "Fig.5A-C",
+          "expected": "Non-empty network/heatmap outputs and corresponding summary tables are produced for the 818-microbe bipartite QSCN, the language-overlap analysis, and the genus-level clustering view.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*qscn*"
+        },
+        {
+          "id": "pf5.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The counts of gut microbes speaking each QS language match the paper.",
+          "paper_reference": "Fig.5A / Results",
+          "expected": "Language counts across 818 gut microbes are: AI-2 567, HAQs 332, DSFs 325, CAI-1 259, Dialkylresorcinols 129, Photopyrones 107, indole 77, AHLs 64, and AIPs 22.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5a*language*counts*"
+        },
+        {
+          "id": "pf5.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The overlap summary for typical languages matches the paper.",
+          "paper_reference": "Fig.5B",
+          "expected": "The overlap analysis reports 64 species sharing two languages, 40 sharing three, 22 sharing four, and 5 sharing five; AI-2 has the highest genus-level count at 138.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5b*overlap*"
+        },
+        {
+          "id": "pf5.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The genus-level clustering panel is built at the same scale reported in the paper.",
+          "paper_reference": "Fig.5C",
+          "expected": "The hierarchical clustering covers 210 genus-level taxa and organizes them into 10 genus-level clusters.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5c*cluster*"
+        },
+        {
+          "id": "pf5.5",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The reproduced genus-level distribution supports the same biological interpretation as the paper.",
+          "paper_reference": "Fig.5C",
+          "expected": "AHLs appear only in Proteobacteria, AIPs are concentrated mainly in Firmicutes, the other languages are distributed heterogeneously, and closely related genera do not show a strongly conserved shared language profile.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5c*heatmap*"
+        }
+      ]
+    },
+    {
+      "id": "pf6",
+      "name": "A directed small QSCN for the SIHUMI community separates signal production from reception and suggests that some microbes receive signals they do not produce.",
+      "items": [
+        {
+          "id": "pf6.1",
+          "priority": "supplementary",
+          "check_type": "pipeline",
+          "verify": "A directed small-network artifact is produced for the SIHUMI example with separate producing and receiving sides.",
+          "paper_reference": "Fig.6",
+          "expected": "A non-empty directed network image or edge table exists that distinguishes QS signal producing from QS signal receiving for the SIHUMI example community.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6*directed*qscn*"
+        },
+        {
+          "id": "pf6.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The reproduced small QSCN supports the same interpretation as the paper.",
+          "paper_reference": "Fig.6",
+          "expected": "The small QSCN separates signal production and reception for the listed SIHUMI microbes, with the receiving side visibly denser/more complex than the producing side and some microbes connected on the receiving side without mirrored producing links.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6*"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

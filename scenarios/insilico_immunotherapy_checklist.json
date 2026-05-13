@@ -1,0 +1,316 @@
+{
+  "paper": {
+    "title": "In silico cancer immunotherapy trials uncover the consequences of therapy-specific response patterns for clinical trial design and outcome",
+    "doi": "10.1038/s41467-023-37933-8"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "Implement the mechanistic tumor-immune models and baseline parameterization used to generate patient-level tumor trajectories.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "The reproduction generated a non-empty overview artifact for the mechanistic modeling workflow.",
+          "paper_reference": "Fig.1A-E; Methods",
+          "expected": "A usable artifact exists that shows model components, fitting to survival data, patient simulation, randomized trial construction, and downstream trial-design applications.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig1*.*"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The model-parameter inventory matches the paper.",
+          "paper_reference": "Table 1",
+          "expected": "Table 1 lists four parameters shared by all models (rho, delta, xi, g); total parameter counts are 9 for M1 and 8 each for M2 and M3.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*table1*.*"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The fixed baseline parameter values for the three models match the paper exactly.",
+          "paper_reference": "Table 2; Methods, Model parameters",
+          "expected": "Table 2 values are: M1 rho=5, delta=0.019, xi=0.001, g=10000000, hT=571, hI=571, mS=1, pS=1, alphaN=0.0025; M2 rho=0.045, delta=0.178, xi=0.00000134, g=92330, hT=60095000, alphaA=2073.5, alphae=0.8318, deltaA=0.231; M3 rho=0.045, delta=0.019, xi=0.0000000001, g=10000000, alphaA=2073.5, pI=0.05, beta=1.1x10^12, epsilon=10^-12.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*table2*.*"
+        },
+        {
+          "id": "pf1.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The patient-level simulation thresholds used for the trajectory plots match the paper.",
+          "paper_reference": "Fig.2",
+          "expected": "Each simulation plot starts when tumor burden reaches 10^8 cells, and treatment starts at tumor size 65 x 10^8 cells.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig2*.*"
+        },
+        {
+          "id": "pf1.5",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The simulated trajectories show the same qualitative response regimes as the paper.",
+          "paper_reference": "Fig.2",
+          "expected": "Untreated tumors progress to death, treatment can induce partial or complete responses, and the exhaustion-based model shows oscillatory recurrence after apparent clearance.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig2*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "Fit the models to lung cancer and melanoma survival datasets and show that immunotherapy-like survival shapes emerge.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The reproduction generated fitted survival-curve artifacts for the reference clinical cohorts.",
+          "paper_reference": "Fig.3A-B; Methods, Data digitization & reconstruction",
+          "expected": "Usable reconstructed survival data and fitted survival-curve artifacts are produced for the reference cohorts.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig3*.*"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The reconstructed cohort sizes match the figure annotations.",
+          "paper_reference": "Fig.3A",
+          "expected": "The Fig. 3A risk tables start with 228 patients for NCCTG, 250 and 252 for CA184-024 (Ipi+DTIC and DTIC), and 210 and 208 for CheckMate 066 (Nivo and DTIC); these values are shown in the figure's 'No. at risk' rows.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig3*.*"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The digitized Kaplan-Meier reconstructions visually agree with the source trials.",
+          "paper_reference": "Fig.3A; Results, In silico late-stage immunotherapy trials yield realistic survival outcomes",
+          "expected": "The reconstructed Kaplan-Meier curves and risk tables for the melanoma trials should closely match the published source curves rather than showing obvious mismatch.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*digitized*.*"
+        },
+        {
+          "id": "pf2.4",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The fitted in silico trials reproduce the key immunotherapy survival-curve patterns and relative fit quality reported in the paper.",
+          "paper_reference": "Fig.3B; Results, In silico late-stage immunotherapy trials yield realistic survival outcomes",
+          "expected": "Fitted simulations reproduce immunotherapy-like delayed arm separation and later treatment-arm flattening; M1 fits all datasets best, whereas M2 and M3 show visibly poorer fit on at least one dataset.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig3*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "Predict regimen-specific survival and hazard patterns, including violations of proportional hazards, from the fitted models.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The reproduction generated survival, hazard, and hazard-ratio outputs for the alternative treatment-regimen scenarios.",
+          "paper_reference": "Fig.4A-F",
+          "expected": "A usable artifact exists for the regimen-specific survival curves together with accompanying hazard or hazard-ratio summaries.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4*.*"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The simulated trial size used for the regimen-comparison scenarios matches the paper.",
+          "paper_reference": "Fig.4A-F",
+          "expected": "Each Fig. 4 scenario is a 1:1 randomized trial with 600 simulated patients per arm.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig4*.*"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The reproduced survival patterns match the paper's qualitative claims across treatment scenarios.",
+          "paper_reference": "Fig.4A-F",
+          "expected": "Transient chemotherapy produces early separation followed by convergence in some models, immunotherapy-containing regimens show delayed separation and non-constant hazards, one scenario yields crossing curves, and another yields only temporary separation.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "Demonstrate that the preferred treatment-effect metric depends on survival-curve shape and fitted parameterization.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The reproduction generated power-analysis outputs comparing hazard-ratio and milestone-survival analyses.",
+          "paper_reference": "Fig.5A-C; Table 3",
+          "expected": "A non-empty artifact reports fitted parameter values and the resulting power curves for hazard-ratio and milestone-survival analyses.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The fitted parameter values used for later power and interim-analysis figures match the paper exactly.",
+          "paper_reference": "Table 3",
+          "expected": "Table 3 values are: M1 log10 rho mean=2.54, log10 rho sd=1.01, chemotherapy effect=0.6, immunotherapy effect=12.15; M2 log10 rho mean=-3.94, log10 rho sd=1.29, chemotherapy effect=0.6, immunotherapy effect=218.75; M3 log10 rho mean=-3.49, log10 rho sd=0.37, chemotherapy effect=0.75, immunotherapy effect=2.25.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*table3*.*"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The simulation setup for the Fig. 5 power curves matches the paper.",
+          "paper_reference": "Fig.5A-C",
+          "expected": "Figure 5 uses 250 simulated trials per point, and the M3 chemotherapy setting is a 20% reduction in tumor growth rate.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The power ordering in the transient chemotherapy-versus-placebo scenario matches the paper.",
+          "paper_reference": "Fig.5A",
+          "expected": "For transient chemotherapy versus placebo, hazard-ratio analysis is more powerful than the milestone survival endpoint across the sampled arm sizes.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        },
+        {
+          "id": "pf4.5",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The endpoint preference flips appropriately across the other response-pattern scenarios.",
+          "paper_reference": "Fig.5B-C",
+          "expected": "For chemoimmunotherapy versus chemotherapy, the milestone survival endpoint outperforms the hazard ratio, whereas in the long-lasting chemotherapy scenario both analyses improve and the hazard ratio still has an advantage.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf5",
+      "name": "Use in silico trials to choose analysis endpoint and randomization ratio for chemotherapy and immunotherapy designs.",
+      "items": [
+        {
+          "id": "pf5.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "The reproduction generated power curves as a function of trial duration and randomization ratio.",
+          "paper_reference": "Fig.6A-B",
+          "expected": "A usable artifact exists for power analyses that vary analysis time and allocation ratio.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6*.*"
+        },
+        {
+          "id": "pf5.2",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The simulation settings for the endpoint and randomization analyses match the paper.",
+          "paper_reference": "Fig.6A-B",
+          "expected": "Figure 6 uses 400 simulated trials per point; the randomization-ratio panel uses study size 300 patients in the chemotherapy example and 1200 patients in the immunotherapy example.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig6*.*"
+        },
+        {
+          "id": "pf5.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The optimal endpoint identified for the classical chemotherapy scenario matches the paper.",
+          "paper_reference": "Fig.6A; Results, In silico trials can help to choose endpoints and randomization ratios",
+          "expected": "For the classical chemotherapy scenario, the endpoint with the highest power is 6-month overall survival.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig6*.*"
+        },
+        {
+          "id": "pf5.4",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The relative importance of endpoint timing versus allocation ratio matches the paper in both therapy settings.",
+          "paper_reference": "Fig.6A-B",
+          "expected": "Chemotherapy reaches peak power earlier, immunotherapy requires later analysis because of delayed separation, and changing allocation ratio has comparatively little effect on power.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig6*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf6",
+      "name": "Assess how the number and timing of interim analyses trade early stopping against final power.",
+      "items": [
+        {
+          "id": "pf6.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "The reproduction generated interim-analysis outcome summaries over time.",
+          "paper_reference": "Fig.7A-C",
+          "expected": "A non-empty artifact summarizes trial outcomes over time under different interim-analysis plans.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig7*.*"
+        },
+        {
+          "id": "pf6.2",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The interim-analysis simulation setup matches the paper.",
+          "paper_reference": "Fig.7A-C",
+          "expected": "The interim-analysis simulations use 1000 trials per scenario, 1200 patients per trial, 1:1 randomization, and treatment-effect settings of strong=12, weak=4, and no effect=0 for the fold increase of T-cell killing.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig7*.*"
+        },
+        {
+          "id": "pf6.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The early-stopping benefit for a strong immunotherapy effect matches the paper.",
+          "paper_reference": "Fig.7A",
+          "expected": "With a strong immunotherapy effect, an interim analysis at 16 months yields about 25% early positive stopping and an analysis at 18 months yields about 40% early positive stopping.",
+          "tolerance": "±5 percentage points",
+          "output_pattern": "stages/*/outputs/*fig7*.*"
+        },
+        {
+          "id": "pf6.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The mild loss of final power from adding multiple interim analyses in the weak-effect scenario matches the paper.",
+          "paper_reference": "Fig.7B; Results, Simulating the effects of interim analyses",
+          "expected": "With a weak immunotherapy effect, approximately 88% of trials are positive with no interim analysis and approximately 86% are positive with three equally spaced interim analyses.",
+          "tolerance": "±3 percentage points",
+          "output_pattern": "stages/*/outputs/*fig7*.*"
+        },
+        {
+          "id": "pf6.5",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The no-effect control scenario preserves the expected false-positive behavior.",
+          "paper_reference": "Fig.7C",
+          "expected": "In the no-effect control scenario, about 95% of trials end negative regardless of the number of interim analyses.",
+          "tolerance": "±3 percentage points",
+          "output_pattern": "stages/*/outputs/*fig7*.*"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

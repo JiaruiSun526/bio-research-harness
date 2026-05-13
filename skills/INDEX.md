@@ -1,0 +1,69 @@
+# Skill Reference Index
+
+Available analysis skill guides. Read the full guide with `read_file("skills/<name>/SKILL.md")`.
+
+- **academic-literature-search**: Use this skill when the user asks to search for academic papers, retrieve literature, generate citat
+- **alphafold-database**: Access AlphaFold 200M+ AI-predicted protein structures. Retrieve structures by UniProt ID, download 
+- **anndata**: Data structure for annotated matrices in single-cell analysis. Use when working with .h5ad files or 
+- **biopython**: Comprehensive molecular biology toolkit. Use for sequence manipulation, file parsing (FASTA/GenBank/
+- **biorxiv-database**: Efficient database search tool for bioRxiv preprint server. Use this skill when searching for life s
+- **bioservices**: Unified Python interface to 40+ bioinformatics services. Use when querying multiple databases (UniPr
+- **brenda-database**: Access BRENDA enzyme database via SOAP API. Retrieve kinetic parameters (Km, kcat), reaction equatio
+- **chembl-database**: Query ChEMBL bioactive molecules and drug discovery data. Search compounds by structure/properties, 
+- **citation-management**: Comprehensive citation management for academic research. Search Google Scholar and PubMed for papers
+- **clinicaltrials-database**: Query ClinicalTrials.gov via API v2. Search trials by condition, drug, location, status, or phase. R
+- **clinpgx-database**: Access ClinPGx pharmacogenomics data (successor to PharmGKB). Query gene-drug interactions, CPIC gui
+- **clinvar-database**: Query NCBI ClinVar for variant clinical significance. Search by gene/position, interpret pathogenici
+- **cobrapy**: Constraint-based metabolic modeling (COBRA). FBA, FVA, gene knockouts, flux sampling, SBML models, f
+- **cosmic-database**: Access COSMIC cancer mutation database. Query somatic mutations, Cancer Gene Census, mutational sign
+- **data-quality-control**: Systematic assessment of dataset quality before analysis. Covers missing
+- **database-api-reference**: Quick-reference curl/Python templates for 77+ public life science databases. Use when querying genom
+- **deepchem**: Molecular ML with diverse featurizers and pre-built datasets. Use for property prediction (ADMET, to
+- **deeptools**: NGS analysis toolkit. BAM to bigWig conversion, QC (correlation, PCA, fingerprints), heatmaps/profil
+- **drugbank-database**: Access and analyze comprehensive drug information from the DrugBank database including drug properti
+- **ena-database**: Access European Nucleotide Archive via API/FTP. Retrieve DNA/RNA sequences, raw reads (FASTQ), genom
+- **ensembl-database**: Query Ensembl genome database REST API for 250+ species. Gene lookups, sequence retrieval, variant a
+- **fda-database**: Query openFDA API for drugs, devices, adverse events, recalls, regulatory submissions (510k, PMA), s
+- **gene-database**: Query NCBI Gene via E-utilities/Datasets API. Search by symbol/ID, retrieve gene info (RefSeqs, GO, 
+- **geo-database**: Access NCBI GEO for gene expression/genomics data. Search/download microarray and RNA-seq datasets (
+- **gget**: Fast CLI/Python queries to 20+ bioinformatics databases. Use for quick lookups: gene info, BLAST sea
+- **gsea-enrichment**: Gene Set Enrichment Analysis (GSEA) and Over-Representation Analysis (ORA)
+- **gwas-database**: Query NHGRI-EBI GWAS Catalog for SNP-trait associations. Search variants by rs ID, disease/trait, ge
+- **hmdb-database**: Access Human Metabolome Database (220K+ metabolites). Search by name/ID/structure, retrieve chemical
+- **kegg-database**: Direct REST API access to KEGG (academic use only). Pathway analysis, gene-pathway mapping, metaboli
+- **literature-review**: Conduct comprehensive, systematic literature reviews using multiple academic databases (PubMed, arXi
+- **matplotlib**: Low-level plotting library for full customization. Use when you need fine-grained control over every
+- **metabolomics-workbench-database**: Access NIH Metabolomics Workbench via REST API (4,200+ studies). Query metabolites, RefMet nomenclat
+- **networkx**: Comprehensive toolkit for creating, analyzing, and visualizing complex networks and graphs in Python
+- **openalex-database**: Query and analyze scholarly literature using the OpenAlex database. This skill should be used when s
+- **opentargets-database**: Query Open Targets Platform for target-disease associations, drug target discovery, tractability/saf
+- **pdb-database**: Access RCSB PDB for 3D protein/nucleic acid structures. Search by text/sequence/structure, download 
+- **peer-review**: Structured manuscript/grant review with checklist-based evaluation. Use when writing formal peer rev
+- **plotly**: Interactive visualization library. Use when you need hover info, zoom, pan, or web-embeddable charts
+- **pubchem-database**: Query PubChem via PUG-REST API/PubChemPy (110M+ compounds). Search by name/CID/SMILES, retrieve prop
+- **pubmed-database**: Direct REST API access to PubMed. Advanced Boolean/MeSH queries, E-utilities API, batch processing, 
+- **pydeseq2**: Differential gene expression analysis (Python DESeq2). Identify DE genes from bulk RNA-seq counts, W
+- **pymc**: Bayesian modeling with PyMC. Build hierarchical models, MCMC (NUTS), variational inference, LOO/WAIC
+- **pysam**: Genomic file toolkit. Read/write SAM/BAM/CRAM alignments, VCF/BCF variants, FASTA/FASTQ sequences, e
+- **rdkit**: Cheminformatics toolkit for fine-grained molecular control. SMILES/SDF parsing, descriptors (MW, Log
+- **reactome-database**: Query Reactome REST API for pathway analysis, enrichment, gene-pathway mapping, disease pathways, mo
+- **research-lookup**: Look up current research information using Perplexity Sonar Pro Search or Sonar Reasoning Pro models
+- **scanpy**: Standard single-cell RNA-seq analysis pipeline. Use for QC, normalization, dimensionality reduction 
+- **scientific-schematics**: Create publication-quality scientific diagrams using Nano Banana Pro AI with smart iterative refinem
+- **scientific-slides**: Slide design principles for scientific presentations — structure, pacing, visual hierarchy. For actu
+- **scientific-visualization**: Meta-skill for publication-ready figures. Use when creating journal submission figures requiring mul
+- **scientific-writing**: Core skill for the deep research and writing tool. Write scientific manuscripts in full paragraphs (
+- **scikit-learn**: Machine learning in Python with scikit-learn. Use when working with supervised learning (classificat
+- **scikit-survival**: Comprehensive toolkit for survival analysis and time-to-event modeling in Python using scikit-surviv
+- **scvi-tools**: Deep generative models for single-cell omics. Use when you need probabilistic batch correction (scVI
+- **seaborn**: Statistical visualization with pandas integration. Use for quick exploration of distributions, relat
+- **shap**: Model interpretability and explainability using SHAP (SHapley Additive exPlanations). Use this skill
+- **statistical-analysis**: Guided statistical analysis with test selection and reporting. Use when you need help choosing appro
+- **statsmodels**: Statistical models library for Python. Use when you need specific model classes (OLS, GLM, mixed mod
+- **string-database**: Query STRING API for protein-protein interactions (59M proteins, 20B interactions). Network analysis
+- **umap-learn**: UMAP dimensionality reduction. Fast nonlinear manifold learning for 2D/3D visualization, clustering 
+- **uniprot-database**: Direct REST API access to UniProt. Protein searches, FASTA retrieval, ID mapping, Swiss-Prot/TrEMBL.
+- **uspto-database**: Access USPTO APIs for patent/trademark searches, examination history (PEDS), assignments, citations,
+- **venue-templates**: Access comprehensive LaTeX templates, formatting requirements, and submission guidelines for major s
+- **web-browse**: Web search (Google/Google Scholar) and page browsing via web_skills_base_tools. Use when a task need
+- **zinc-database**: Access ZINC (230M+ purchasable compounds). Search by ZINC ID/SMILES, similarity searches, 3D-ready s

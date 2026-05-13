@@ -1,0 +1,311 @@
+name = "lyme_diagnostics"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/lyme_diagnostics/data/CSFreport.pg_matrix.tsv",
+    "papers/lyme_diagnostics/data/annotation_table.tsv",
+    "papers/lyme_diagnostics/data/annotation_table_plasma.tsv",
+    "papers/lyme_diagnostics/data/clinical_data.xlsx",
+    "papers/lyme_diagnostics/data/plasmareport.pg_matrix.tsv",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "CSF proteomics protein-group abundance matrix"
+path = "data/CSFreport.pg_matrix.tsv"
+description = '''Wide tab-delimited protein-group matrix for CSF mass-spectrometry runs. Rows are 1,865 protein groups with identifiers in the first four columns (Protein.Group, Protein.Names, Genes, First.Protein.Description), and the remaining 355 columns are numeric abundances/intensities for individual mzML runs named by their original file paths. The run columns span several CSF experiments encoded in the filenames, including 20210921 LNBandViralMeningitis Plate1/Plate2, 20220510 LNB2ndCohort Plate2, and 20230501 LNBCohort3 Plate1/Plate2, plus control/QC injections such as Blank, Empty, HealthyPool, and SerumPool. Use this file for protein-by-sample quantification in CSF analyses, typically after excluding non-sample runs and linking sample IDs from filenames or external metadata.'''
+
+[[data.catalog]]
+name = "Protein annotation table for CSF protein set"
+path = "data/annotation_table.tsv"
+description = '''Tab-delimited lookup table mapping protein entries to readable names, gene names, and a GO-related annotation/category string. Rows are protein records (669 total) keyed by the Entry column, and columns are Entry, Entry Name, Protein names, Gene Names, and GO. Use it to annotate proteins from the CSF matrix or summarize protein sets by functional label; the GO field appears to store one text label per row rather than a full ontology structure.'''
+
+[[data.catalog]]
+name = "Protein annotation table for plasma protein set"
+path = "data/annotation_table_plasma.tsv"
+description = '''Annotation lookup table with the same five-column schema as annotation_table.tsv, but reduced to the plasma-relevant protein set (239 rows). Rows are protein entries and columns provide Entry, Entry Name, Protein names, Gene Names, and a GO-related annotation/category string; some rows contain semicolon-separated Entry values and missing text fields, so merges should be checked carefully. Use this file to label proteins from plasmareport.pg_matrix.tsv rather than the larger annotation table.'''
+
+[[data.catalog]]
+name = "Plasma proteomics protein-group abundance matrix"
+path = "data/plasmareport.pg_matrix.tsv"
+description = '''Wide tab-delimited protein-group matrix for plasma/serum mass-spectrometry runs. Rows are 379 protein groups with identifiers in the first four columns, and the remaining 229 columns are numeric abundances/intensities for mzML runs named by their original file paths. The run columns mix multiple plasma experiments, notably 20220519 LNB2ndCohort Plate1_Plasma and 20230911 LNBCohort4 Plasma Plate4/Plate5, together with Blank, Empty, HealthyPool, and SerumPool control/QC injections. Use this file for protein abundance comparisons across plasma samples after filtering control runs and aligning sample IDs or clinical metadata externally.'''
+
+[[data.catalog]]
+name = "Clinical data Excel workbook"
+path = "data/clinical_data.xlsx"
+description = '''Excel workbook with one sheet containing 483 rows and 24 columns of clinical metadata. Key columns: sample_id (links to proteomics matrix column basenames), subject, diagnosis (LNB/VM/control/PTLDS/EM/ACA), tissue_info (plasma/CSF), batch_number, study_cohort (csf_development/csf_validation/plasma_development/plasma_validation), sample_date, dob, sex, aetiology, origin, csf_protein, csf_leuko, cxcl13, IgG_serum. Diagnosis counts: control(169), LNB(155), VM(127), PTLDS(17), EM(9), ACA(6). Load with pd.read_excel('data/clinical_data.xlsx'). Use study_cohort to define the fixed development/validation splits.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: lyme_diagnostics
+
+## Background
+Lyme neuroborreliosis is a CNS infection where current diagnosis still depends heavily on lumbar puncture and imperfect serology, so we want to test whether host-response proteomics can support diagnosis in a clinically realistic setting. Start from the provided processed protein-group matrices for CSF (`CSFreport.pg_matrix.tsv`) and plasma (`plasmareport.pg_matrix.tsv`), link them to `clinical_data.xlsx`, and use the local annotation tables for GO labeling. The core question is whether batch-corrected protein signatures, coupled to supervised classifiers, can distinguish adult LNB from viral meningitis and non-LNB controls, and whether plasma can carry a usable less-invasive signal.
+
+## Research Goals
+1. Assemble the analytical cohorts from the provided matrices and clinical metadata, remove technical/QC runs, lock the fixed development and validation cohorts, and recreate the baseline cohort summary table.
+2. Preprocess CSF and plasma protein matrices separately: sample-level QC, protein missingness filtering, log2 transformation, multivariate imputation, and plate/run batch correction.
+3. Run contrast-specific differential abundance analyses in the development cohorts and then independently in the validation cohorts for the planned comparisons.
+4. Annotate significant proteins with GO terms and generate the tissue-specific overlap summaries, volcano plots, and z-scored heatmaps used to visualize the regulated signatures.
+5. Train and validate CSF diagnostic models for LNB vs viral meningitis and LNB vs controls, including model screening, hyperparameter tuning, calibration check, ROC/MCC evaluation, and SHAP-based feature importance.
+6. Train and validate the plasma diagnostic model for LNB vs controls, then apply that model to the additional Lyme and non-Lyme plasma groups and compare score distributions.
+7. Compare regulated proteins across CSF and plasma, visualize shared and compartment-specific effects, and only if curated comparison lists are available, add a manual literature-overlap summary.
+
+## Methodological Preferences
+- Use `clinical_data.xlsx` as the authoritative source for diagnosis, specimen type, cohort/source, age, and sex; use the protein matrices only for abundance values and sample/run identifiers.
+- Start from the provided protein-group matrices; do not attempt raw-spectrum processing.
+- Exclude all technical/QC columns before any analysis, including filenames containing `Blank`, `Empty`, `HealthyPool`, `SerumPool`, or other pooled-control labels.
+- Keep CSF and plasma completely separate throughout preprocessing, statistical testing, and model training.
+- Preserve the fixed independent development/validation split defined by source/cohort metadata; do not randomly reshuffle those cohorts.
+- Adult-only analysis: retain only subjects older than 18 years.
+- Sample QC threshold: remove samples with quantified-protein count below `Q1 - 1.5*IQR` within each specimen type.
+- Protein filter: remove proteins with missingness >40% across biological samples within each specimen type.
+- Transform abundances with `log2`; treat non-positive values as missing before transformation.
+- Use multivariate imputation with `sklearn.experimental.enable_iterative_imputer` and `IterativeImputer(estimator=BayesianRidge(), initial_strategy='median', max_iter=20, random_state=1)`.
+- Apply empirical-Bayes ComBat batch correction implemented with `numpy`/`scipy`; define batch from analytical run/plate encoded in the mzML filename, and preserve diagnosis effects during correction.
+- For differential testing, use two-sided unpaired t-tests protein-by-protein, followed by Benjamini-Hochberg FDR correction; significance threshold `q < 0.05`.
+- Define large-effect proteins with `|log2FC| > 1`; use this threshold for volcano highlighting and the CSF signature heatmap.
+- Use GO annotations from `annotation_table.tsv` for CSF and `annotation_table_plasma.tsv` for plasma; omit GO categories representing <5% of displayed proteins.
+- Heatmaps should use protein-wise z-scores, with proteins clustered and samples ordered by diagnosis/cohort rather than fully unsupervised column clustering.
+- For model screening, use a 12-classifier scikit-learn benchmark. If the exact roster needs to be reconstructed, use: `LogisticRegression`, `SVC`, `RandomForestClassifier`, `ExtraTreesClassifier`, `GradientBoostingClassifier`, `AdaBoostClassifier`, `DecisionTreeClassifier`, `KNeighborsClassifier`, `GaussianNB`, `LinearDiscriminantAnalysis`, `QuadraticDiscriminantAnalysis`, and `SGDClassifier(loss='log_loss')`.
+- Hyperparameter tuning should optimize weighted F1 within stratified CV; final algorithm choice for each task should be based on held-out-fold AUC and MCC.
+- CSF CV scheme: stratified 5-fold. Plasma CV scheme: stratified 3-fold. Keep class ratios balanced across folds.
+- Use the designated final model families for the main figures: Logistic Regression for CSF LNB vs viral meningitis; SVC for CSF LNB vs controls; SVC for plasma LNB vs controls.
+- Assess probability calibration with `CalibratedClassifierCV(method='sigmoid')`; keep calibration only if it improves development-cohort performance.
+- Report ROC AUC and Matthews correlation coefficient; also generate confusion matrices using a 0.5 positive-class probability threshold.
+- Plot mean CV ROC with ±1 SD shading and overlay the independent validation ROC as a separate curve.
+- Use SHAP for the final selected models and report the top 10 proteins by mean absolute SHAP value.
+- Do not build a plasma viral-meningitis-vs-LNB classifier; only build plasma LNB-vs-control because the intended plasma task is the blood-based LNB screen.
+- For the post-hoc plasma scoring, apply the final LNB-vs-control model to erythema migrans, acrodermatitis chronica atrophicans, post-treatment Lyme disease syndrome, and viral meningitis; compare EM+ACA against PTLDS+VM with a two-sided Mann-Whitney U test.
+- Use `matplotlib` for all figures; manual Venn/alluvial/UpSet-like layouts are acceptable if built directly with matplotlib primitives.
+
+## What to Approve
+- A plan that uses the provided processed matrices and metadata, correctly removes technical runs, and locks the source-defined development/validation cohorts before modeling.
+- A preprocessing workflow that includes the exact QC threshold, >40% missingness filter, log2 transformation, multivariate imputation, and ComBat-style batch correction.
+- Separate CSF and plasma analyses with the correct planned contrasts and no pooling across tissues.
+- Differential testing with unpaired t-tests plus Benjamini-Hochberg correction, with clear use of `q < 0.05` and `|log2FC| > 1` where required.
+- CSF modeling that screens multiple classifiers but ultimately evaluates Logistic Regression for LNB vs viral meningitis and SVC for LNB vs controls.
+- Plasma modeling that only targets LNB vs controls, then scores the additional Lyme/non-Lyme plasma groups without retraining on them.
+- Reporting that includes AUC, MCC, ROC plots, confusion matrices, and SHAP top-feature summaries.
+- Visualization plans that use the local annotation tables for GO labeling and reproduce the validation-cohort summaries rather than only development-cohort plots.
+
+## What to Push Back On
+- Any proposal that randomizes development/validation membership, merges the independent cohorts, or tunes on the validation cohort.
+- Keeping blanks, empties, pooled controls, or repeated non-biological QC injections in the analytical dataset.
+- Skipping batch correction, using a generic scaler in place of ComBat, or ignoring plate/run structure in the filenames.
+- Replacing the planned t-test/FDR workflow with a different differential method without a strong justification.
+- Training plasma viral-meningitis-vs-LNB models or using EM/ACA/PTLDS samples for hyperparameter tuning.
+- Using all proteins directly in the classifiers without the contrast-specific significance filter from the development cohort.
+- Reporting only accuracy or F1 without AUC and MCC.
+- Skipping SHAP interpretation, the post-hoc plasma score comparison, or the cross-tissue overlap analysis.
+- Attempting unsupported figure packages or unsupported ML libraries when the same analyses can be done with pandas/scipy/sklearn/matplotlib.
+
+## Domain Interests
+- The CSF signal should look strongly compartmentalized, with adaptive humoral and complement-related proteins elevated in LNB relative to comparator groups.
+- Viral meningitis should look more acute-inflammatory than LNB, especially in plasma, where acute-phase and inflammatory proteins are expected to dominate the comparator pattern.
+- Plasma should carry a weaker but still biologically coherent LNB signal, centered on innate immunity, complement, coagulation, and lipid-transport processes rather than a purely intrathecal signature.
+- Shared CSF/plasma proteins are especially interesting if their directions differ between compartments; that would support localized CNS versus systemic host-response biology.
+- Validation should preserve biological directionality and ranking structure, not just acceptable cross-validated performance in the development cohort.
+- Model scores for active extra-CNS Lyme manifestations should trend closer to the LNB end of the plasma classifier than PTLDS or unrelated CNS infection.
+- Age and sex are plausible confounders in proteomics; it is useful to check whether model scores are being driven by those variables even if they are not built into the main classifier.
+- Failure to detect very low-abundance cytokine-like proteins is not, by itself, a preprocessing red flag in this workflow.
+
+## Implementation Specifications
+1. **Goal 1: Cohort assembly and metadata locking**
+   - **Parameters**:
+     - Primary abundance files: `CSFreport.pg_matrix.tsv`, `plasmareport.pg_matrix.tsv`
+     - Metadata file: `clinical_data.xlsx`
+     - GO files: `annotation_table.tsv`, `annotation_table_plasma.tsv`
+     - Primary unique feature ID: `Protein.Group`
+     - Display label for figures: first non-empty token from `Genes`; if missing, use the first accession in `Protein.Group`
+   - **Thresholds**:
+     - Age > 18 years
+     - Control CSF definition if metadata need validation: CSF WBC within `0–5 × 10^6/L` and negative intrathecal antibody index
+     - Positive LNB definition if metadata need validation: intrathecal antibody index `> 0.3` with `OD-CSF ≥ 0.15`
+   - **Implementation constraints**:
+     - Strip the matrix sample column names to basenames by removing path and `.mzML`.
+     - Mark columns as technical/QC and exclude them if the basename contains `Blank`, `Empty`, `HealthyPool`, `SerumPool`, or `Pool`.
+     - Parse biological sample IDs by removing an optional trailing timestamp matching `_\d{14}$`, then removing specimen suffixes such as `-CSF`, `_CSF`, `-Plasma`, or `_Plasma`.
+     - Use `clinical_data.xlsx` as the authoritative cohort assignment. Development and validation cohorts must remain fixed by metadata/source; never randomize them.
+     - If multiple biological injections map to the same specimen after parsing and no preferred injection is marked in metadata, retain all through preprocessing, then average duplicate abundances on the corrected log2 scale before downstream statistics.
+
+2. **Goal 2: Preprocessing, imputation, and batch correction**
+   - **Equations**:
+     - Sample protein count for sample \( s \):  
+       \( c_s = \sum_{p=1}^{P} \mathbf{1}[x_{ps} \text{ is observed}] \)
+     - Low-count threshold:  
+       \( T_{sample} = Q_1(c) - 1.5 \cdot IQR(c) \)
+     - Protein missingness for protein \( p \):  
+       \( m_p = \frac{1}{N}\sum_{s=1}^{N}\mathbf{1}[x_{ps} \text{ is missing}] \)
+     - Log transform:  
+       \( y_{ps} = \log_2(x_{ps}) \), with \( x_{ps} \le 0 \Rightarrow \text{missing} \)
+     - ComBat model for protein \( p \), sample \( s \), batch \( b(s) \):  
+       \( y_{ps} = \alpha_p + X_s\beta_p + \gamma_{p,b(s)} + \delta_{p,b(s)}\epsilon_{ps} \)
+     - Standardized ComBat residual:  
+       \( z_{ps} = \frac{y_{ps} - \alpha_p - X_s\beta_p}{\sigma_p} \)
+     - Corrected abundance:  
+       \( y^{corr}_{ps} = \sigma_p \cdot \frac{z_{ps} - \gamma^{*}_{p,b(s)}}{\delta^{*}_{p,b(s)}} + \alpha_p + X_s\beta_p \)
+   - **Parameters**:
+     - Imputer: `IterativeImputer`
+     - Estimator inside imputer: `BayesianRidge()`
+     - `initial_strategy='median'`
+     - `max_iter=20`
+     - `random_state=1`
+     - ComBat design matrix \( X_s \): diagnosis indicators within the relevant tissue/cohort so batch correction preserves biological group differences
+     - Batch variable: analytical run/plate prefix from the mzML basename after removing the sample-specific suffix
+   - **Thresholds**:
+     - Exclude samples with \( c_s < T_{sample} \)
+     - Exclude proteins with \( m_p > 0.40 \)
+   - **Implementation constraints**:
+     - Run preprocessing separately for CSF and plasma.
+     - Fit imputation and ComBat within each fixed cohort-by-tissue dataset to avoid leakage from validation into development modeling.
+     - If a full location-and-scale ComBat is numerically unstable in a tiny batch, fall back to location-only correction (\( \delta_{p,b}=1 \)) rather than skipping batch correction entirely.
+
+3. **Goal 3: Differential abundance testing**
+   - **Equations**:
+     - For each protein \( p \) and comparison \( A \) vs \( B \):  
+       \( \log_2FC_p = \bar{y}^{corr}_{p,A} - \bar{y}^{corr}_{p,B} \)
+     - Two-sample Welch t-statistic:  
+       \( t_p = \frac{\bar{y}_{p,A} - \bar{y}_{p,B}}{\sqrt{s^2_{p,A}/n_A + s^2_{p,B}/n_B}} \)
+     - Benjamini-Hochberg adjustment for sorted p-values \( p_{(k)} \):  
+       \( q_{(k)} = \min_{l \ge k}\left(\frac{m}{l}p_{(l)}\right) \)
+   - **Parameters**:
+     - Use `scipy.stats.ttest_ind(..., equal_var=False, nan_policy='omit')`
+     - Planned contrasts:
+       - CSF: LNB vs viral meningitis
+       - CSF: LNB vs controls
+       - Plasma: LNB vs viral meningitis
+       - Plasma: LNB vs controls
+   - **Thresholds**:
+     - Significance: \( q < 0.05 \)
+     - Large effect: \( |\log_2FC| > 1 \)
+   - **Implementation constraints**:
+     - Perform discovery on the development cohorts and then re-run the same contrasts independently in the validation cohorts.
+     - Use only development-cohort significant proteins for model input features.
+     - Volcano plots must place \( \log_2FC \) on the x-axis and \( -\log_{10}(q) \) on the y-axis, with guide lines at \( \pm 1 \) and \( q=0.05 \).
+
+4. **Goal 4: GO annotation and signature heatmaps**
+   - **Equations**:
+     - Protein-wise z-score for displayed abundance matrix:  
+       \( z_{ps} = \frac{y^{corr}_{ps} - \mu_p}{\sigma_p} \)
+   - **Parameters**:
+     - CSF displayed protein set: proteins with \( q<0.05 \) and \( |\log_2FC|>1 \) in either CSF development-cohort contrast
+     - Plasma displayed protein set: proteins with \( q<0.05 \) in either plasma development-cohort contrast
+     - GO source: local annotation tables matched by accession first, then gene symbol if needed
+     - Row clustering: hierarchical clustering with Euclidean distance and average linkage
+   - **Thresholds**:
+     - Omit GO categories present in <5% of displayed proteins
+   - **Implementation constraints**:
+     - Order development-cohort columns by diagnosis, not by unsupervised sample clustering.
+     - For the validation side of the heatmap, show diagnosis-wise mean abundances rather than every individual validation sample.
+     - Keep blank cells for missing comparison entries in overlap heatmaps; do not impute visual overlap values.
+
+5. **Goal 5: CSF machine-learning models**
+   - **Equations**:
+     - Logistic regression decision function:  
+       \( P(Y=1|x) = \frac{1}{1+\exp[-(\beta_0 + x^\top\beta)]} \)
+     - SVC decision function with kernel \( K \):  
+       \( f(x) = \sum_i \alpha_i y_i K(x_i,x) + b \)
+     - Matthews correlation coefficient:  
+       \( MCC = \frac{TP\cdot TN - FP\cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}} \)
+   - **Parameters**:
+     - Tasks:
+       - CSF LNB vs viral meningitis
+       - CSF LNB vs controls
+     - Candidate feature set per task: all proteins significant at \( q<0.05 \) in the corresponding development-cohort contrast
+     - Standardization: z-score each feature using development-cohort mean and SD; apply the same transform to validation data
+     - Screening panel: `LogisticRegression`, `SVC`, `RandomForestClassifier`, `ExtraTreesClassifier`, `GradientBoostingClassifier`, `AdaBoostClassifier`, `DecisionTreeClassifier`, `KNeighborsClassifier`, `GaussianNB`, `LinearDiscriminantAnalysis`, `QuadraticDiscriminantAnalysis`, `SGDClassifier(loss='log_loss')`
+     - Final LR grid for LNB vs viral meningitis:
+       - `penalty`: `['l1', 'l2']`
+       - `C`: `[0.01, 0.1, 1, 10, 100]`
+       - `solver='liblinear'`
+       - `class_weight`: `[None, 'balanced']`
+     - Final SVC grid for LNB vs controls:
+       - `kernel`: `['linear', 'rbf']`
+       - `C`: `[0.1, 1, 10, 100]`
+       - `gamma`: `['scale', 0.01, 0.1, 1]`
+       - `class_weight`: `[None, 'balanced']`
+       - `probability=True`
+     - Optional feature-selection layer inside model search: `SelectKBest(f_classif)` with `k` in `[5, 10, 20, 'all']`, truncated to the number of available significant proteins
+     - Calibration: `CalibratedClassifierCV(method='sigmoid')`
+     - SHAP:
+       - LR: `shap.LinearExplainer`
+       - SVC: `shap.KernelExplainer` or generic `shap.Explainer` on `predict_proba`
+   - **Thresholds**:
+     - Outer CV: 5 folds, stratified
+     - Positive-class threshold for confusion matrix/MCC: `P(LNB) >= 0.5`
+     - Report top 10 proteins by mean absolute SHAP value
+   - **Implementation constraints**:
+     - Use stratified outer 5-fold CV on the development cohort for performance estimation.
+     - Within each outer training split, tune hyperparameters by weighted F1 only; choose the final algorithm by outer-fold AUC with MCC as the tie-breaker.
+     - After selecting the winning model family and hyperparameters, refit on the full development cohort and apply unchanged to the independent validation cohort.
+     - Keep calibration only if it improves development-cohort discrimination without materially reducing AUC.
+
+6. **Goal 6: Plasma machine-learning model and post-hoc scoring**
+   - **Equations**:
+     - Use the same SVC and MCC equations as above.
+     - Mann-Whitney U test on predicted probabilities \( P(LNB) \) for:
+       - Group 1: erythema migrans + acrodermatitis chronica atrophicans
+       - Group 2: post-treatment Lyme disease syndrome + viral meningitis
+   - **Parameters**:
+     - Main plasma task: LNB vs controls only
+     - Candidate features: all proteins significant at \( q<0.05 \) in the plasma development-cohort LNB-vs-control contrast
+     - SVC grid:
+       - `kernel`: `['linear', 'rbf']`
+       - `C`: `[0.1, 1, 10, 100]`
+       - `gamma`: `['scale', 0.01, 0.1, 1]`
+       - `class_weight`: `[None, 'balanced']`
+       - `probability=True`
+     - Calibration: `CalibratedClassifierCV(method='sigmoid')`
+     - Post-hoc scored groups in validation plasma: viral meningitis, post-treatment Lyme disease syndrome, erythema migrans, acrodermatitis chronica atrophicans
+   - **Thresholds**:
+     - Outer CV: 3 folds, stratified
+     - Positive-class threshold: `P(LNB) >= 0.5`
+     - Mann-Whitney test: two-sided, `alpha = 0.05`
+   - **Implementation constraints**:
+     - Do not fit a plasma viral-meningitis-vs-LNB classifier.
+     - Fit the chosen plasma LNB-vs-control model on the development cohort only, then transfer it unchanged to the validation cohort and the additional diagnostic groups.
+     - Plot score distributions as density/violin + jitter against the x-axis running from control-like to LNB-like.
+
+7. **Goal 7: Cross-tissue overlap and optional external overlap**
+   - **Equations**:
+     - Shared-protein effect matrix for protein/gene \( g \) and comparison \( c \):  
+       \( M_{g,c} = \log_2FC_{g,c} \) if \( q_{g,c}<0.05 \), else `NaN`
+     - Comparisons \( c \in \{\text{CSF LNB vs VM}, \text{CSF LNB vs Control}, \text{Plasma LNB vs VM}, \text{Plasma LNB vs Control}\} \)
+   - **Parameters**:
+     - Define overlap primarily by display gene symbol; if absent, use first accession
+     - Internal overlap sets:
+       - CSF significant proteins
+       - CSF significant proteins with `|log2FC| > 1`
+       - Plasma significant proteins
+   - **Thresholds**:
+     - Shared/internal overlap uses \( q<0.05 \)
+     - GO visualization still uses the <5% frequency filter
+   - **Implementation constraints**:
+     - Leave cells blank for non-significant contrasts in the shared-protein heatmap.
+     - If curated external-study protein lists are not available locally, stop at the internal CSF-vs-plasma comparison; do not infer literature overlaps from figure images alone.
+     - If external lists are available, harmonize to common gene symbols and build a manual matrix-style overlap plot with matplotlib rather than using unsupported plotting libraries.
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything yourself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+'''
+
+# -- Run configuration --
+
+[run]
+initial_message = '''
+We need to establish the adult-only CSF and plasma cohorts from `CSFreport.pg_matrix.tsv`, `plasmareport.pg_matrix.tsv`, and `clinical_data.xlsx`, remove all technical/QC injections by basename matching (`Blank`, `Empty`, `HealthyPool`, `SerumPool`, `Pool`), parse biological IDs from mzML-derived column names, and lock the source-defined development and validation splits before any modeling while recreating the baseline cohort summary table. Start by preprocessing CSF and plasma separately with the exact workflow: sample QC at `Q1 - 1.5*IQR` on quantified-protein counts, protein missingness filter `>40%`, `log2` transform with non-positive values set to missing, `IterativeImputer(BayesianRidge, initial_strategy='median', max_iter=20, random_state=1)`, then ComBat-style empirical-Bayes batch correction from run/plate encoded in filenames while preserving diagnosis effects and averaging duplicate biological injections only after correction. After that, run Welch t-tests with BH FDR for the planned contrasts, annotate significant proteins with the local GO tables, and build the supervised pipelines using development-cohort significant proteins only: 12-classifier screening, stratified 5-fold CV for CSF and 3-fold for plasma, final Logistic Regression for CSF LNB vs viral meningitis, SVC for CSF LNB vs controls and plasma LNB vs controls, calibration only if it improves development performance, and report ROC AUC, MCC, confusion matrices, SHAP top-10 features, post-hoc plasma scoring, and cross-tissue overlap visualizations.
+'''
+max_turns = 200

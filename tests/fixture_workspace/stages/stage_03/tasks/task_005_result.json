@@ -1,0 +1,1 @@
+{"task_id":"task_005","status":"success","summary":"Dot plot script created. Shows top 5 shared pathways with FDR values for both cell types. JAK-STAT is the strongest shared signal.","artifact_paths":["stages/stage_03/outputs/comparison_dotplot.py"],"blockers":[],"suggestions":[],"error":null}

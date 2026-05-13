@@ -1,0 +1,10 @@
+[openrouter]
+api_key = "sk-or-v1-your-key-here"
+proxy = ""
+default_model = "openrouter/openai/gpt-5.4"
+
+[mimo]
+api_key = "sk-your-mimo-key-here"
+api_base = "https://api.xiaomimimo.com/v1"
+proxy = ""
+default_model = "mimo-v2-pro"

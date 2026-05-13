@@ -1,0 +1,292 @@
+name = "qshgm"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/qshgm_quorum_sensing/data/data.csv",
+    "papers/qshgm_quorum_sensing/data/label.csv",
+    "papers/qshgm_quorum_sensing/data/merge.csv",
+    "papers/qshgm_quorum_sensing/data/source/aac/iFeatureManual.pdf",
+    "papers/qshgm_quorum_sensing/data/source/aac/negative_aac.csv",
+    "papers/qshgm_quorum_sensing/data/source/aac/positive_aac.csv",
+    "papers/qshgm_quorum_sensing/data/source/fasta/negative.fasta",
+    "papers/qshgm_quorum_sensing/data/source/fasta/positive.fasta",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "Negative-class AAC protein feature table"
+path = "data/source/aac/negative_aac.csv"
+description = '''CSV feature matrix for the sequences in negative.fasta. Each row is one protein, identified by a UniProt-style accession/name in the '#' column (for example, 'sp|Q5E8X6|FADB_ALIF1'), and the 20 numeric columns A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y are amino-acid composition fractions for those residues. Use this file when you need per-protein AAC features for the negative set or when matching negative FASTA records to feature rows.'''
+
+[[data.catalog]]
+name = "Positive-class AAC protein feature table"
+path = "data/source/aac/positive_aac.csv"
+description = '''CSV feature matrix for the sequences in positive.fasta. Rows are protein entries named in the '#' column (for example, 'VibriovulnificusSmcR' and 'PseudomonasaeruginosaLasR'), and the 20 numeric columns A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y contain amino-acid composition fractions. Use this file for AAC-based modeling or inspection of the positive set.'''
+
+[[data.catalog]]
+name = "iFeature manual PDF"
+path = "data/source/aac/iFeatureManual.pdf"
+description = '''Binary PDF file named 'iFeatureManual.pdf' with size about 2.1 MB. Content was not parsed in the inventory, so inspect it with a PDF reader or extract text with a tool such as PyMuPDF or pdftotext to view section headings and search for relevant documentation.'''
+
+[[data.catalog]]
+name = "Negative protein sequences FASTA"
+path = "data/source/fasta/negative.fasta"
+description = '''FASTA file of protein sequences for the negative set. Each record begins with a UniProt-style header containing accession, protein name, organism, taxonomy ID, gene name, and related metadata, and these identifiers match the '#' values in negative_aac.csv. Use this file when you need the raw sequences, sequence lengths, or to recompute features for the negative examples.'''
+
+[[data.catalog]]
+name = "Positive protein sequences FASTA"
+path = "data/source/fasta/positive.fasta"
+description = '''FASTA file of protein sequences for the positive set. Headers are short names such as 'VibriovulnificusSmcR' and match the identifiers in positive_aac.csv rather than full UniProt annotation lines. Use this file for sequence-level analyses or for regenerating features for the positive examples.'''
+
+[[data.catalog]]
+name = "Combined AAC feature matrix without identifiers"
+path = "data/data.csv"
+description = '''A 20-column numeric matrix that appears to be the AAC features from the source tables after removing the sequence identifier column and combining classes. The current column names are actually the first row's values, indicating the file likely has no true header and should be read with header=None; the value pattern matches amino-acid composition columns ordered as A,C,D,E,F,G,H,I,K,L,M,N,P,Q,R,S,T,V,W,Y. Use this as the model input matrix when row IDs are not needed, typically alongside label.csv.'''
+
+[[data.catalog]]
+name = "Row-aligned class label vector"
+path = "data/label.csv"
+description = '''Single-column integer label file intended to align row-for-row with data.csv. The visible header '1' is likely the first data value being misread as a header, so load with header=None to preserve all rows. The sample shows leading 1 values only; inspect the full column to confirm all label values and class ordering.'''
+
+[[data.catalog]]
+name = "Combined AAC features with label column"
+path = "data/merge.csv"
+description = '''Derived table that appears to join the 20 AAC feature columns from data.csv with one final integer label column. As in data.csv, the present column names are first-row values rather than meaningful headers, so load with header=None if you need the full dataset intact. Use this file when you want features and labels together in a single training table.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: qshgm
+
+## Background
+Quorum-sensing proteins and related communication components can be identified from protein sequence alone well enough to support large-scale curation of gut microbial communication catalogs. The working inputs here are the provided labeled amino-acid-composition tables (`source/aac/positive_aac.csv`, `source/aac/negative_aac.csv`) and matching sequence files (`source/fasta/positive.fasta`, `source/fasta/negative.fasta`), which represent QS/TCS-related positives and non-QS negatives for supervised learning. The main computational question is whether AAC-based classifiers can be reproduced faithfully and then used as the discovery layer for expanding a gut-microbe communication repository and, conditionally, a QS communication network.
+
+## Research Goals
+1. Assemble and quality-control the labeled training dataset from the provided AAC tables and FASTA files.
+2. Recompute amino acid composition from FASTA and verify that it matches the provided AAC matrices exactly enough for downstream modeling.
+3. Train and benchmark four AAC-based classifiers with stratified fivefold cross-validation, matching the original model settings as closely as the sandbox allows.
+4. Fit final models on the full labeled dataset and define the candidate-screening workflow for homolog-filtered proteins, using the union of classifier positives as the sensitivity-oriented discovery rule.
+5. If a candidate set with annotations becomes available, separate predicted positives into annotated versus uncharacterized entries and apply a conservative text-based functional triage for QS relevance and synthase/receptor assignment.
+6. If per-microbe QS-language assignments become available, construct the bipartite microbe-language matrix, project it to a microbe-microbe communication network, and summarize shared-language structure and core-node topology.
+
+## Methodological Preferences
+- Use `source/aac/positive_aac.csv` and `source/aac/negative_aac.csv` as the authoritative labeled feature tables; use the corresponding FASTA files for validation of feature extraction.
+- Reconstruct labels from file provenance: positive = 1, negative = 0.
+- Do **not** use `data.csv`, `label.csv`, or `merge.csv` as primary modeling inputs; they appear to have header/label issues and should only be used, if at all, as non-authoritative helper files.
+- Use only the 20 AAC features: `A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y`; exclude the identifier column `#`.
+- Compute AAC manually from FASTA with plain Python/pandas logic; do not rely on external feature-extraction software.
+- Treat the positive/negative sample definitions as fixed inputs unless the full upstream proteomes and curation tables are supplied.
+- Primary validation: `sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`.
+- Report mean cross-validated accuracy, precision, recall, and F1 score for each classifier.
+- Use these classifier settings:
+  - SVM: `sklearn.svm.SVC(kernel='rbf', C=4, gamma=32)`
+  - KNN: `sklearn.neighbors.KNeighborsClassifier(n_neighbors=5, metric='euclidean', weights='uniform')`
+  - RF: `sklearn.ensemble.RandomForestClassifier(n_estimators=122, max_depth=55, max_features='sqrt', random_state=42, n_jobs=-1)`
+  - DNN substitute: `sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(20,20,20), solver='sgd', learning_rate_init=0.01, activation='relu', max_iter=500, random_state=42)`
+- Keep AAC on its raw proportion scale for the primary reproduction; if scaling is explored, do it only inside each CV fold and treat it as sensitivity analysis.
+- For the discovery stage, use the union of positive predictions across the four classifiers.
+- Keep the homology-screen threshold fixed at E-value `<= 1e-5` if a candidate table from sequence-homology screening is supplied later.
+- Exclude short signal-peptide/AIP-like sequences from the AAC-based expansion stage; use a practical exclusion range of 5-30 aa.
+- If a descriptive sequence tree is needed for exploratory QC, use `scipy.cluster.hierarchy.linkage` plus `matplotlib` dendrograms on a pairwise distance matrix rather than specialized tree software.
+- Plot types to reproduce:
+  - grouped bar chart of CV metrics by classifier
+  - optional AAC class-distribution summaries for QC
+  - if candidate outputs are available, bar plot of annotated vs uncharacterized predicted positives
+  - if network inputs are available, adjacency heatmap / degree distribution / small-subnetwork node-link plots with `matplotlib`
+
+## What to Approve
+- The plan uses the provided positive/negative AAC and FASTA files directly and reconstructs labels from class membership.
+- The plan explicitly ignores or audits the malformed combined CSV files instead of trusting them blindly.
+- AAC is recomputed from FASTA with the exact 20-residue alphabet and matched back to the provided tables before modeling.
+- Cross-validation is stratified, fivefold, and all preprocessing is fit within folds only.
+- The four classifiers use the specified hyperparameters, with the multilayer perceptron clearly labeled as a substitute for the unavailable custom deep model.
+- The agent reports all four metrics: accuracy, precision, recall, and F1.
+- The candidate-discovery logic uses the **union** of positives across models, not the intersection.
+- Later stages are treated as conditional on additional inputs; missing homology-search outputs or language-assignment tables are documented rather than improvised.
+
+## What to Push Back On
+- Using `data.csv`, `label.csv`, or `merge.csv` as the main source of labels/features without first detecting the formatting problem.
+- Swapping AAC for unrelated feature sets such as embeddings, k-mers, or physicochemical descriptors in the primary reproduction.
+- Using a random train/test split instead of stratified fivefold CV.
+- Retuning the published hyperparameters aggressively and presenting that as a faithful reproduction.
+- Applying scaling, feature selection, or imputation on the full dataset before CV.
+- Reporting only accuracy or only the best fold.
+- Using the intersection of model positives for candidate discovery.
+- Inferring QS language assignments directly from AAC classifier outputs alone.
+- Attempting full network construction without a curated microbe-language table.
+- Treating unresolved or uncharacterized candidate proteins as confirmed QS components without a conservative review step.
+
+## Domain Interests
+- AAC vectors should sum to 1 per sequence and match FASTA-derived compositions closely; this is the first sign the pipeline is trustworthy.
+- Classifier disagreement should concentrate around regulatory/sensor-like proteins and borderline communication proteins rather than obvious housekeeping enzymes.
+- A sensitivity-oriented union of model positives is desirable because downstream curation is meant to remove false positives.
+- If language assignments are later available, broad interspecies-style languages should appear more widely distributed than narrow clade-enriched languages.
+- Receiver-only assignments are biologically plausible and should not be discarded automatically.
+- A convincing network summary should emphasize language sharing, redundancy, and conditional crosstalk rather than claiming every possible link is active in vivo.
+- Small illustrative subnetworks are more interpretable than a single giant node-link plot.
+
+## Implementation Specifications
+1. **Assemble and quality-control the labeled dataset**
+   - **Inputs**:
+     - `source/aac/positive_aac.csv`
+     - `source/aac/negative_aac.csv`
+     - `source/fasta/positive.fasta`
+     - `source/fasta/negative.fasta`
+   - **Feature columns**: exactly 20 AAC columns in this order:  
+     `A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y`
+   - **Labels**:
+     - positive rows: `y = 1`
+     - negative rows: `y = 0`
+   - **Identifier handling**:
+     - keep column `#` as sequence ID / accession only
+     - never include `#` in the feature matrix
+   - **QC checks**:
+     - no missing AAC values
+     - each row sum satisfies `|Σ_t f(t) - 1| <= 1e-6`
+     - sequence IDs from FASTA headers should match the AAC table IDs by the first token after `>`
+   - **Implementation constraints**:
+     - rebuild the merged dataset from the two class-specific CSVs
+     - do not trust `data.csv`, `label.csv`, or `merge.csv` as authoritative because their headers appear shifted into the first data row
+
+2. **Recompute AAC from FASTA and validate against the tables**
+   - **Equations**:
+     - For amino-acid type `t`,
+       `f(t) = N(t) / N`
+     - `N(t)`: count of residue `t` in the sequence
+     - `N`: total number of residues in the 20-standard-amino-acid alphabet
+   - **Alphabet**:
+     - `A, C, D, E, F, G, H, I, K, L, M, N, P, Q, R, S, T, V, W, Y`
+   - **Rules**:
+     - strip whitespace and line breaks from FASTA sequences
+     - convert to uppercase
+     - if any non-standard residue appears, exclude those symbols from both numerator and denominator; if the remaining `N = 0`, discard that sequence
+   - **Validation threshold**:
+     - compare recomputed AAC to the provided AAC row-by-row with absolute tolerance `1e-8` per feature when IDs match
+   - **Implementation constraints**:
+     - if a small number of rows fail the tolerance check, inspect ID parsing before assuming a biological discrepancy
+     - do not proceed to modeling until the AAC extraction is confirmed
+
+3. **Train and benchmark the four classifiers**
+   - **Cross-validation**:
+     - `StratifiedKFold(n_splits=5, shuffle=True, random_state=42)`
+   - **Metrics**:
+     - `Accuracy = (TP + TN) / (TP + TN + FP + FN)`
+     - `Precision = TP / (TP + FP)`
+     - `Recall = TP / (TP + FN)`
+     - `F1 = 2 * Precision * Recall / (Precision + Recall)`
+   - **Positive class**: label `1`
+   - **Models and parameters**:
+     - **SVM**: `SVC(kernel='rbf', C=4, gamma=32)`
+       - `gamma = 1 / (2*sigma^2)` with `sigma = 0.125`
+     - **KNN**: `KNeighborsClassifier(n_neighbors=5, metric='euclidean', weights='uniform')`
+     - **RF**: `RandomForestClassifier(n_estimators=122, max_depth=55, max_features='sqrt', criterion='gini', bootstrap=True, random_state=42, n_jobs=-1)`
+     - **DNN substitute**: `MLPClassifier(hidden_layer_sizes=(20,20,20), activation='relu', solver='sgd', learning_rate_init=0.01, alpha=0.0001, batch_size='auto', max_iter=500, random_state=42)`
+   - **Implementation constraints**:
+     - primary analysis uses raw AAC proportions without global scaling
+     - compute fold-wise metrics, then report the arithmetic mean across 5 folds
+     - save out-of-fold predictions if possible for later error analysis
+     - produce a grouped bar plot with classifiers on the x-axis and the four metrics as colored bars
+   - **Substitution note**:
+     - the deep model is approximated with a plain multilayer perceptron because the original custom architecture with one-to-one connections and batch normalization is not executable here
+
+4. **Fit full-data models and define the candidate-screening workflow**
+   - **Prerequisite candidate pool**:
+     - only use proteins that have already passed a sequence-homology screen with E-value `<= 1e-5`
+   - **Exclusions**:
+     - remove any candidate already present in the positive training set by exact ID match
+     - remove short signal-peptide/AIP-like sequences with length between 5 and 30 aa from the AAC-classifier expansion stage
+   - **Full-data fitting**:
+     - refit all four classifiers on the entire labeled dataset after CV is complete
+   - **Prediction rule**:
+     - for candidate `i`, define per-model outputs  
+       `p_svm(i), p_knn(i), p_rf(i), p_mlp(i) ∈ {0,1}`
+     - define union positive  
+       `U(i) = 1` if `max[p_svm(i), p_knn(i), p_rf(i), p_mlp(i)] = 1`, else `0`
+   - **Deliverables**:
+     - one row per candidate with ID, sequence length, four model predictions, and union flag
+   - **Implementation constraints**:
+     - if no homolog-filtered candidate file is available locally, stop after defining this function and document the dependency
+     - do not replace homology screening with AAC similarity; that changes the scientific role of this stage
+
+5. **Triage annotated vs uncharacterized predicted positives**
+   - **Annotated/uncharacterized split**:
+     - treat a candidate as **uncharacterized** if its description contains any of:
+       - `uncharacterized`
+       - `hypothetical`
+       - `putative protein`
+       - `domain-containing`
+       - `DUF`
+       - or the header lacks descriptive text beyond accession-like tokens
+     - otherwise treat it as **annotated**
+   - **Conservative QS text triage**:
+     - assign **potential synthase** if annotation contains one or more of:
+       - `synthase`
+       - `lyase`
+       - `tryptophanase`
+       - `autoinducer synthase`
+     - assign **potential receptor/sensor/regulator** if annotation contains one or more of:
+       - `LuxR`
+       - `receptor`
+       - `histidine kinase`
+       - `sensor kinase`
+       - `response regulator`
+       - `regulator`
+       - `AgrC`
+       - `Rgg`
+     - otherwise mark as `pending_manual_review`
+   - **Implementation constraints**:
+     - no external structure modeling or remote annotation queries in the sandbox
+     - unresolved entries stay unresolved; do not force language labels from weak text matches
+   - **Downstream effect**:
+     - without external annotation support, this stage is only a triage layer, not a confirmation layer
+
+6. **Construct the QS communication network when language assignments are available**
+   - **Required input**:
+     - a curated table assigning each microbe to zero or more of these 9 languages:  
+       `AHLs, DSFs, HAQs, CAI-1, AIPs, Dialkylresorcinols, Photopyrones, indole, AI-2`
+   - **Bipartite incidence matrix**:
+     - let `B` be an `n_microbes × 9` binary matrix
+     - `B[i,l] = 1` if microbe `i` can produce and/or receive language `l`
+     - `B[i,l] = 0` otherwise
+   - **Projected microbe-microbe network**:
+     - weighted adjacency: `W = B * B^T`
+     - set diagonal `W[i,i] = 0`
+     - unweighted adjacency: `A[i,j] = 1` if `W[i,j] > 0`, else `0`
+   - **Node summaries**:
+     - degree: `k_i = Σ_j A[i,j]`
+     - weighted degree: `s_i = Σ_j W[i,j]`
+     - betweenness centrality for undirected graph:
+       - `C_B(v) = Σ_{s≠v≠t} σ_st(v) / σ_st`
+       - `σ_st`: number of shortest paths between `s` and `t`
+       - `σ_st(v)`: number of those shortest paths that pass through `v`
+       - normalized form: multiply by `2 / ((n-1)(n-2))`
+   - **Core-node rule**:
+     - target the top `ceil(0.05 * n_microbes)` microbes as the core set
+     - if betweenness is implemented, prioritize nodes that are jointly high in degree and betweenness
+     - if the language table is available but betweenness is not implemented, use degree-only core ranking and label it as an approximation
+   - **Implementation constraints**:
+     - never infer language assignment from AAC classifier output alone
+     - for large networks, prefer adjacency heatmaps and degree distributions; reserve node-link plots for small subnetworks because dense full-network drawings are not very interpretable in plain `matplotlib`
+   - **Skip condition**:
+     - if no curated microbe-language assignment table is available, skip actual network construction and only provide the matrix definitions and expected input schema
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything yourself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+- When ALL research goals from this brief have been addressed (even if some results are imperfect), include the marker [FINISH] at the END of your response. This signals the system to end the run. Do NOT include [FINISH] if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+max_turns = 200

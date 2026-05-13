@@ -1,0 +1,336 @@
+{
+  "paper": {
+    "title": "The diagnostic potential of proteomics and machine learning in Lyme neuroborreliosis",
+    "doi": "https://doi.org/10.1038/s41467-025-64903-z"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "Clinical metadata define the CSF and plasma development and validation cohorts summarized in Table 1.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Verify that a cohort summary artifact exists with one row per sample and columns sufficient to recreate Table 1, including sample type, diagnosis, cohort split, age, and sex.",
+          "paper_reference": "Table 1; Methods 'Cohorts'",
+          "expected": "A non-empty cohort table/summary is produced for CSF and plasma samples, covering development and validation cohorts and the Lyme borreliosis subgroups included in plasma validation.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*table1*.*"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify that cohort counts match the subgroup sizes reported in Table 1.",
+          "paper_reference": "Table 1",
+          "expected": "Table 1 cohort counts are: CSF development 49 LNB, 44 viral meningitis, 52 controls (N=145); CSF validation 69 LNB, 45 viral meningitis, 49 controls (N=163); plasma development 27 LNB, 20 viral meningitis, 48 controls (N=95); plasma validation 10 LNB, 18 viral meningitis, 20 controls, 6 acrodermatitis chronica atrophicans, 9 erythema migrans, 17 post-treatment-Lyme-disease-syndrome (N=80).",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*table1*.*"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify that overall study totals and diagnostic-group totals match the paper and explicitly flag the plasma-sample count discrepancy between the abstract and the rest of the paper.",
+          "paper_reference": "Results 'Study population'; Abstract; Methods 'Study population and setting'",
+          "expected": "Overall eligible samples total 483, broken down as 155 LNB, 127 viral meningitis, 169 controls, and 32 other Lyme borreliosis manifestations. Cohort definitions and Table 1 imply 308 CSF samples and 175 plasma samples. Note: the abstract states 207 plasma samples, which conflicts with Table 1/Methods and should be flagged as a paper discrepancy rather than reproduced silently.",
+          "tolerance": "±0 for 483, 155, 127, 169, 32, 308, and 175",
+          "output_pattern": "stages/*/outputs/*cohort*summary*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "CSF proteomic filtering and differential analysis identify a distinct LNB protein signature versus viral meningitis and controls.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Verify that a filtered CSF protein matrix and differential-analysis result tables for LNB vs viral meningitis and LNB vs controls are produced and usable.",
+          "paper_reference": "Fig.1A-C; Methods 'Data processing' and 'Data analysis'",
+          "expected": "Non-empty CSF differential-analysis artifacts exist, including a filtered CSF matrix and comparison tables containing protein identifiers, log2 fold changes, and adjusted p-values for both LNB vs viral meningitis and LNB vs controls.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*csf*diff*.*"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify CSF preprocessing and filtering statistics.",
+          "paper_reference": "Results 'CSF development cohort'",
+          "expected": "In CSF, 1865 proteins are identified, the median quantified proteins per sample is 773, 14 samples are excluded for low protein numbers, and 654 proteins remain after missingness filtering.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*csf*summary*.*"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify the number of significant CSF proteins in the development cohort for each comparison.",
+          "paper_reference": "Fig.1A; Results 'CSF development cohort'",
+          "expected": "In the CSF development cohort, 176 proteins are significantly different between LNB and viral meningitis, with 10 having absolute log2 fold change >1; 464 proteins are significantly different between LNB and controls, with 41 having absolute log2 fold change >1.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*csf*diff*.*"
+        },
+        {
+          "id": "pf2.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify overlap and validation counts for the CSF differential-protein signature.",
+          "paper_reference": "Fig.1B; Results 'CSF development cohort' and 'CSF validation cohort'",
+          "expected": "Among CSF proteins with high absolute log2 fold changes, 7 proteins overlap between the LNB-vs-viral-meningitis and LNB-vs-control development comparisons. In the CSF validation cohort, 147 proteins are significantly different between LNB and viral meningitis and controls with high log2 fold changes, and 41 of 44 development-cohort high-log2FC proteins overlap.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*csf*overlap*.*"
+        },
+        {
+          "id": "pf2.5",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "Verify that the CSF heatmap and annotations reproduce the biological direction described in the paper.",
+          "paper_reference": "Fig.1C; Results 'Protein signatures of LNB in CSF'",
+          "expected": "The CSF heatmap should show immunoglobulin-related proteins generally upregulated in LNB, while proteins tied to innate immune responses and neuroendocrine signaling are relatively downregulated in LNB versus viral meningitis and controls; representative examples include IGLV3-25/IGHM up and S100A9/CHGA/ECRG4 down.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig1*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "CSF proteomic signatures support machine-learning diagnosis of LNB against viral meningitis and controls.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Verify that trained-model artifacts, ROC data, validation predictions, and SHAP outputs exist for both CSF classification tasks.",
+          "paper_reference": "Fig.2A-D; Methods 'Model development' and 'Model validation'",
+          "expected": "Usable CSF classifier outputs exist for both tasks: a Logistic Regression model for viral meningitis vs LNB and a Support Vector Classifier model for control vs LNB, with ROC/performance summaries and SHAP feature-importance artifacts.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*csf*classifier*.*"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify CSF viral meningitis vs LNB test-set performance.",
+          "paper_reference": "Fig.2A",
+          "expected": "The CSF viral meningitis vs LNB classifier achieves test-set 5-fold CV performance of AUC 0.91 and MCC 0.81; the figure/text also report standard deviations of 0.11 and 0.08, respectively.",
+          "tolerance": "AUC ±0.05; MCC ±0.08",
+          "output_pattern": "stages/*/outputs/*csf*vm*lnb*metrics*.*"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify CSF viral meningitis vs LNB validation-cohort performance.",
+          "paper_reference": "Fig.2A; Results 'Diagnostic classifier for LNB based on machine learning and CSF proteomics'",
+          "expected": "When applied to the CSF validation cohort, the viral meningitis vs LNB classifier achieves AUC 0.92 and MCC 0.70; the figure/text also report standard deviations of 0.02 and 0.06, respectively.",
+          "tolerance": "AUC ±0.05; MCC ±0.08",
+          "output_pattern": "stages/*/outputs/*csf*vm*lnb*validation*.*"
+        },
+        {
+          "id": "pf3.4",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify CSF control vs LNB test-set performance.",
+          "paper_reference": "Fig.2C",
+          "expected": "The CSF control vs LNB classifier achieves test-set 5-fold CV performance of AUC 0.93 and MCC 0.76; the figure/text also report standard deviations of 0.07 and 0.14, respectively.",
+          "tolerance": "AUC ±0.05; MCC ±0.10",
+          "output_pattern": "stages/*/outputs/*csf*control*lnb*metrics*.*"
+        },
+        {
+          "id": "pf3.5",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify CSF control vs LNB validation-cohort performance.",
+          "paper_reference": "Fig.2C; Results 'Diagnostic classifier for LNB based on machine learning and CSF proteomics'",
+          "expected": "When applied to the CSF validation cohort, the control vs LNB classifier achieves AUC 0.90 and MCC 0.63; the figure/text also report standard deviations of 0.01 and 0.06, respectively.",
+          "tolerance": "AUC ±0.05; MCC ±0.08",
+          "output_pattern": "stages/*/outputs/*csf*control*lnb*validation*.*"
+        },
+        {
+          "id": "pf3.6",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Verify that CSF SHAP feature-importance outputs emphasize the same protein families and named proteins as the paper.",
+          "paper_reference": "Fig.2B, Fig.2D",
+          "expected": "CSF SHAP summaries should emphasize immune, neuroendocrine, and cell-damage proteins. Prominent proteins for viral meningitis vs LNB include IGLV3-25, H4C1, CSF1, FCGBP, CHGA, S100A9, IGLV3-10, NPPC, IGLV9-49, and IGHV3-73; prominent proteins for control vs LNB include CRP, IGHM, CHGA, H4C1, S100A9, IGLV3-25, FCGBP, ACTA2, ECRG4, and APCS.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*csf*shap*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "Plasma proteomic filtering and differential analysis detect an LNB-associated signature distinct from viral meningitis and controls.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Verify that a filtered plasma protein matrix and plasma differential-analysis result tables are produced and usable.",
+          "paper_reference": "Fig.3A-C; Methods 'Data processing' and 'Data analysis'",
+          "expected": "Non-empty plasma differential-analysis artifacts exist, including a filtered plasma matrix and comparison tables for LNB vs viral meningitis and LNB vs controls with protein identifiers, log2 fold changes, and adjusted p-values.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*plasma*diff*.*"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify plasma preprocessing and filtering statistics.",
+          "paper_reference": "Results 'Plasma development cohort'",
+          "expected": "In plasma, 379 proteins are identified, the median quantified proteins per sample is 268, 1 sample is excluded for low protein number, and 232 proteins remain after missingness filtering.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*plasma*summary*.*"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify the number of significant plasma proteins in the development cohort.",
+          "paper_reference": "Fig.3A-B; Results 'Plasma development cohort'",
+          "expected": "In the plasma development cohort, 68 proteins are significantly different between LNB and viral meningitis, 69 are significantly different between LNB and controls, and the overlap between these two significant-protein sets is 36.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*plasma*diff*.*"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify plasma validation-cohort differential-protein counts and overlap with development findings.",
+          "paper_reference": "Fig.3B; Results 'Plasma validation cohort'",
+          "expected": "In the plasma validation cohort, 25 proteins are significantly different in LNB compared with viral meningitis and controls, and 10 of these overlap with the significant proteins from the development cohort.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*plasma*overlap*.*"
+        },
+        {
+          "id": "pf4.5",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "Verify that the plasma heatmap and annotations reproduce the biological direction described in the paper.",
+          "paper_reference": "Fig.3C; Results 'Protein signatures of LNB in plasma'",
+          "expected": "The plasma heatmap should show LNB relatively enriched for complement, coagulation, and lipid-metabolism proteins such as C3, C5, F13A1, APOE, and FCN3/SERPING1, while viral meningitis is characterized by acute-phase and pro-inflammatory markers such as CRP, S100A8, and S100A9, and controls show higher immunoglobulin abundance than LNB.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig3*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf5",
+      "name": "A plasma proteomics SVC classifier separates LNB from controls and scores other active Borrelia infections as more LNB-like.",
+      "items": [
+        {
+          "id": "pf5.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Verify that trained plasma-classifier artifacts, ROC data, validation predictions, SHAP outputs, and predictions for other diagnoses are produced.",
+          "paper_reference": "Fig.4A-C; Methods 'Model development' and 'Model validation'",
+          "expected": "Usable plasma classifier outputs exist for the control vs LNB task, with the final model being a Support Vector Classifier and with ROC/performance summaries, SHAP feature importance, and predicted-probability outputs for ACA, EM, PTLDS, and viral meningitis.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*plasma*classifier*.*"
+        },
+        {
+          "id": "pf5.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify plasma control vs LNB development/test-set performance.",
+          "paper_reference": "Fig.4A",
+          "expected": "The plasma control vs LNB classifier achieves development-cohort test-set 3-fold CV performance of AUC 0.96 and MCC 0.83; the figure/text also report standard deviations of 0.03 and 0.008, respectively.",
+          "tolerance": "AUC ±0.05; MCC ±0.05",
+          "output_pattern": "stages/*/outputs/*plasma*control*lnb*metrics*.*"
+        },
+        {
+          "id": "pf5.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Verify plasma control vs LNB validation-cohort performance.",
+          "paper_reference": "Fig.4A; Results 'Diagnostic classifier for LNB based on machine learning and plasma proteomics'",
+          "expected": "When applied to the plasma validation cohort, the control vs LNB classifier achieves AUC 0.80 and MCC 0.48; the figure/text also report standard deviations of 0.02 and 0.04, respectively.",
+          "tolerance": "AUC ±0.05; MCC ±0.08",
+          "output_pattern": "stages/*/outputs/*plasma*control*lnb*validation*.*"
+        },
+        {
+          "id": "pf5.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Verify that plasma SHAP feature-importance outputs emphasize the same proteins highlighted by the paper.",
+          "paper_reference": "Fig.4B",
+          "expected": "Plasma SHAP summaries should prominently feature proteins such as VWF, S100A8, ACTB, IGHG4, FN1, LDHB, TTR, S100A9, F13A1, SERPINA5, and HP, consistent with roles in innate immunity, humoral defense, coagulation, and cellular metabolism.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*plasma*shap*.*"
+        },
+        {
+          "id": "pf5.5",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify that the plasma LNB classifier assigns higher LNB-like scores to active Borrelia infections than to PTLDS or viral meningitis, and that the reported group comparison matches.",
+          "paper_reference": "Fig.4C; Results 'Diagnostic classifier for LNB based on machine learning and plasma proteomics'",
+          "expected": "Predicted probabilities should be higher for acrodermatitis chronica atrophicans and erythema migrans than for post-treatment-Lyme-disease-syndrome and viral meningitis. The reported Mann-Whitney comparison for ACA+EM vs PTLDS+viral meningitis is U statistic 5475.0 with p value 2.65e-07.",
+          "tolerance": "U ±0; p ±50% relative",
+          "output_pattern": "stages/*/outputs/*plasma*other*diagnos*pred*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf6",
+      "name": "Cross-compartment comparison links CSF and plasma findings and situates them relative to prior LNB proteomics studies.",
+      "items": [
+        {
+          "id": "pf6.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Verify that cross-compartment overlap artifacts are produced, including overlap counts, a heatmap/sankey summary, and a literature-comparison UpSet plot.",
+          "paper_reference": "Fig.5A-C",
+          "expected": "A non-empty cross-compartment comparison output exists, with artifacts corresponding to the protein-overlap summary, the overlap heatmap with gene-ontology annotations, and the literature-comparison UpSet plot.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        },
+        {
+          "id": "pf6.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify the number of proteins shared between CSF and plasma and their directionality summary.",
+          "paper_reference": "Fig.5A-B; Results 'Comparison of protein profiles'",
+          "expected": "There are 72 proteins significantly different between LNB and controls or viral meningitis in both CSF and plasma; 62 of these 72 are relatively upregulated in CSF from patients with LNB; and 30 of those are inversely regulated in plasma.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*cross*compartment*overlap*.*"
+        },
+        {
+          "id": "pf6.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "Verify that the overlap heatmap and ontology summary reproduce the compartment-specific pattern described in the paper.",
+          "paper_reference": "Fig.5B",
+          "expected": "The overlap heatmap should show a prominent block of immunoglobulins with opposite regulation across compartments, with higher abundance in CSF LNB and lower abundance in plasma LNB, alongside ontology categories involving innate immunity, complement activation, coagulation, proteolysis, and adaptive/humoral immune response.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        },
+        {
+          "id": "pf6.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Verify that the literature-comparison UpSet plot reproduces the set sizes annotated in the main figure.",
+          "paper_reference": "Fig.5C",
+          "expected": "Fig.5C should annotate significant-protein set sizes of 5 for Fredriksson, 79 for Gęgotek, 92 for Nilsson serum, 101 for this study plasma, 115 for Angel, 124 for Nilsson CSF, and 488 for this study CSF. These values are figure annotations.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5*upset*.*"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

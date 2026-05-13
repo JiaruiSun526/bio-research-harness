@@ -1,0 +1,352 @@
+{
+  "paper": {
+    "title": "Machine learning for predicting survival of colorectal cancer patients",
+    "doi": "10.1038/s41598-023-35649-9"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "Cohort filtering and preprocessing produce the eligible colorectal-cancer populations, feature matrix, and label definitions used in all downstream survival analyses.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "A preprocessing artifact exists that documents cohort selection, label creation, categorical encoding, normalization, and train/test splitting for the colorectal cancer study dataset.",
+          "paper_reference": "Fig. 1; Methods, 'Selection of variables' and 'Construction of the models'",
+          "expected": "Machine-readable preprocessing output is present for the study cohort and indicates the workflow described in Fig. 1: selection of eligible patients, creation of survival labels, conversion of categorical variables to numeric values, normalization to mean 0 and variance 1, and random 75/25 train/test splitting.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/cohort_summaries.json"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The reproduced cohort sizes after eligibility filtering match the paper.",
+          "paper_reference": "Fig. 1; Results, 'Characteristics of the population'",
+          "expected": "Exact cohort counts are 31,916 total eligible colorectal adenocarcinoma patients; 29,670 eligible for 1-year survival analysis; 26,231 eligible for 3-year survival analysis; and 23,338 eligible for 5-year survival analysis.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/cohort_stats.csv"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "Directly extracted survival proportions over time match the reported values.",
+          "paper_reference": "Supplementary Fig. S1",
+          "expected": "Overall survival extracted directly from the dataset is 77% at 1 year, 59% at 3 years, and 53.2% at 5 years.",
+          "tolerance": "±0.5 percentage points",
+          "output_pattern": "stages/*/outputs/cohort_stats.csv"
+        },
+        {
+          "id": "pf1.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The train/test split preserves class balance across analyses.",
+          "paper_reference": "Table 1",
+          "expected": "Random splitting uses 75% of samples for training and 25% for testing, and the class percentages in training and test sets are similar enough that there is no significant difference between them for the analyzed labels.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/split_balance.csv"
+        },
+        {
+          "id": "pf1.5",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The feature matrix dimensionality matches the study design.",
+          "paper_reference": "Table 3; Methods, 'Selection of variables'",
+          "expected": "Each analysis retains 25 feature columns and 1 binary label column after removing the unused output columns.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/column_profile.txt"
+        },
+        {
+          "id": "pf1.6",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The chi-square screening output has the same overall pattern of associations described by the paper.",
+          "paper_reference": "Table 4; Methods, 'Statistical analysis'",
+          "expected": "A chi-square p-value table is produced for all feature/label combinations, with many p-values very close to 0 and some values close to 1, matching the paper's statement that many features are associated with the labels while some are not.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/chi_square_results.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "Benchmarking across the five prediction endpoints shows that XGBoost performs best on test data overall, while Random Forest exhibits stronger overfitting than XGBoost.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "An aggregated benchmark summary is produced for all five endpoints and all three models.",
+          "paper_reference": "Table 2",
+          "expected": "A machine-readable summary exists containing performance metrics for Naive Bayes, Random Forest, and XGBoost on each of the five tasks: cancer-specific survival, overall survival, 1-year survival, 3-year survival, and 5-year survival.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/metrics.csv"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The reproduced test-set AUCs across all tasks match the reported benchmark values.",
+          "paper_reference": "Table 2; Results sections for all five analyses",
+          "expected": "Reported test AUCs are: cancer-specific survival NB 0.765, RF 0.844, XGBoost 0.845; overall survival NB 0.781, RF 0.852, XGBoost 0.857; 1-year survival NB 0.772, RF 0.842, XGBoost 0.846; 3-year survival NB 0.743, RF 0.823, XGBoost 0.826; 5-year survival NB 0.759, RF 0.853, XGBoost 0.858.",
+          "tolerance": "±0.03",
+          "output_pattern": "stages/*/outputs/**/metrics.csv"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The relative ranking of algorithms and the overfitting pattern match the paper.",
+          "paper_reference": "Table 2; Abstract; Discussion",
+          "expected": "XGBoost is the best or tied-best model on test performance across the five analyses, Naive Bayes is consistently worst, and Random Forest shows a larger train-to-test AUC drop than XGBoost, consistent with the paper's interpretation of stronger overfitting in Random Forest.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/metrics.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "For cancer-specific survival, XGBoost and Random Forest outperform Naive Bayes, and clinical staging is the dominant explanatory feature.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Cancer-specific survival model artifacts are produced for all three algorithms.",
+          "paper_reference": "Fig. 2a-c; Fig. 3a,b; Fig. 4a,b",
+          "expected": "Outputs exist for cancer-specific survival including confusion matrix artifacts, ROC/AUC metrics for training and test sets, and feature-importance or SHAP summaries for Naive Bayes, Random Forest, and XGBoost.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/obito_cancer*/metrics.csv"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Confusion matrices show the same relative behavior across models.",
+          "paper_reference": "Fig. 2a-c",
+          "expected": "Naive Bayes has the worst and noticeably unbalanced cancer-specific classification, with more class 1 cases going to class 0; Random Forest and XGBoost show much more balanced class-wise accuracy, both around 77%.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/obito_cancer*/confusion_matrices.png"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Training and test AUCs for cancer-specific survival match the paper.",
+          "paper_reference": "Fig. 3a,b",
+          "expected": "Cancer-specific survival AUCs are NB train/test = 0.767/0.765, RF train/test = 0.974/0.844, and XGBoost train/test = 0.909/0.845.",
+          "tolerance": "±0.03",
+          "output_pattern": "stages/*/outputs/**/obito_cancer*/metrics.csv"
+        },
+        {
+          "id": "pf3.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The main cancer-specific feature-importance ranking matches the reported interpretation.",
+          "paper_reference": "Fig. 4a,b",
+          "expected": "Clinical staging is the most important feature for both Random Forest and XGBoost. Random Forest top five include clinical staging, presence of recurrence, year of diagnosis, service category, and surgery. XGBoost top features include clinical staging, year of diagnosis, presence of recurrence, surgery, and age.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/obito_cancer*/feature_importances.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "For overall survival, XGBoost gives the best discrimination, Naive Bayes remains weakest, and clinical staging again dominates feature importance.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Overall-survival model artifacts are produced for all three algorithms.",
+          "paper_reference": "Supplementary Fig. S2a-c; Supplementary Fig. S3; Supplementary Fig. S4a,b",
+          "expected": "Outputs exist for overall survival including confusion matrices, ROC/AUC metrics for train and test sets, and feature-importance or SHAP summaries for Naive Bayes, Random Forest, and XGBoost.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/obito_geral*/metrics.csv"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Overall-survival confusion matrices follow the same model ranking described in the paper.",
+          "paper_reference": "Supplementary Fig. S2a-c",
+          "expected": "Naive Bayes is unbalanced and predicts more class 0 than class 1; Random Forest achieves about 77% accuracy in both classes; XGBoost is best with almost 78% accuracy.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/obito_geral*/confusion_matrices.png"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "Overall-survival AUCs match the reported values.",
+          "paper_reference": "Supplementary Fig. S3",
+          "expected": "Overall-survival AUCs are NB train/test = 0.773/0.781, RF train/test = 0.958/0.852, and XGBoost train/test = 0.873/0.857.",
+          "tolerance": "±0.03",
+          "output_pattern": "stages/*/outputs/**/obito_geral*/metrics.csv"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Overall-survival feature importance agrees with the paper.",
+          "paper_reference": "Supplementary Fig. S4a,b",
+          "expected": "Clinical staging is the most important feature. Random Forest top five are clinical staging, year of diagnosis, age, presence of recurrence, and surgery. XGBoost contains the same five features.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/obito_geral*/feature_importances.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf5",
+      "name": "For 1-year survival, XGBoost slightly outperforms Random Forest, Naive Bayes collapses toward class 0 predictions, and clinical staging remains the top predictor.",
+      "items": [
+        {
+          "id": "pf5.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "1-year survival model artifacts are produced for all three algorithms.",
+          "paper_reference": "Supplementary Fig. S5a-c; Supplementary Fig. S6; Supplementary Fig. S7a,b",
+          "expected": "Outputs exist for 1-year survival including confusion matrices, ROC/AUC metrics for train and test sets, and feature-importance or SHAP summaries for Naive Bayes, Random Forest, and XGBoost.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano1*/metrics.csv"
+        },
+        {
+          "id": "pf5.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "1-year confusion matrices show the same failure mode for Naive Bayes and the same ranking of models.",
+          "paper_reference": "Supplementary Fig. S5a-c",
+          "expected": "Naive Bayes predicts almost all cases as class 0; Random Forest reaches about 77% accuracy in both classes; XGBoost is slightly better with more than 77% accuracy.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano1*/confusion_matrices.png"
+        },
+        {
+          "id": "pf5.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "1-year survival AUCs match the paper.",
+          "paper_reference": "Supplementary Fig. S6",
+          "expected": "1-year survival AUCs are NB train/test = 0.761/0.772, RF train/test = 0.862/0.842, and XGBoost train/test = 0.865/0.846.",
+          "tolerance": "±0.03",
+          "output_pattern": "stages/*/outputs/**/vivo_ano1*/metrics.csv"
+        },
+        {
+          "id": "pf5.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "1-year feature-importance rankings match the reported top predictors.",
+          "paper_reference": "Supplementary Fig. S7a,b",
+          "expected": "Clinical staging is the most important feature. Random Forest top five are clinical staging, in-hospital treatment, surgery, presence of recurrence, and chemotherapy. XGBoost uses the same five features.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano1*/feature_importances.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf6",
+      "name": "For 3-year survival, XGBoost again edges Random Forest, Naive Bayes is mostly class-0 biased, and clinical staging leads the feature rankings.",
+      "items": [
+        {
+          "id": "pf6.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "3-year survival model artifacts are produced for all three algorithms.",
+          "paper_reference": "Supplementary Fig. S8a-c; Supplementary Fig. S9; Supplementary Fig. S10a,b",
+          "expected": "Outputs exist for 3-year survival including confusion matrices, ROC/AUC metrics for train and test sets, and feature-importance or SHAP summaries for Naive Bayes, Random Forest, and XGBoost.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano3*/metrics.csv"
+        },
+        {
+          "id": "pf6.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "3-year confusion matrices reproduce the reported class-prediction pattern.",
+          "paper_reference": "Supplementary Fig. S8a-c",
+          "expected": "Naive Bayes predicts almost all cases as class 0 and therefore gets few class 1 cases correct; Random Forest exceeds 74% accuracy in both classes; XGBoost is slightly better with almost 75% accuracy.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano3*/confusion_matrices.png"
+        },
+        {
+          "id": "pf6.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "3-year survival AUCs match the reported values.",
+          "paper_reference": "Supplementary Fig. S9",
+          "expected": "3-year survival AUCs are NB train/test = 0.756/0.743, RF train/test = 0.953/0.823, and XGBoost train/test = 0.895/0.826.",
+          "tolerance": "±0.03",
+          "output_pattern": "stages/*/outputs/**/vivo_ano3*/metrics.csv"
+        },
+        {
+          "id": "pf6.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "3-year feature-importance rankings agree with the paper.",
+          "paper_reference": "Supplementary Fig. S10a,b",
+          "expected": "Clinical staging is the most important feature. Random Forest top five are clinical staging, surgery, age, in-hospital treatment, and year of diagnosis. XGBoost contains the same feature set with order variation, including clinical staging, year of diagnosis, surgery, age, and in-hospital treatment.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano3*/feature_importances.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf7",
+      "name": "For 5-year survival, XGBoost attains the best test discrimination, Naive Bayes is biased toward class 1, and clinical staging remains the leading feature.",
+      "items": [
+        {
+          "id": "pf7.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "5-year survival model artifacts are produced for all three algorithms.",
+          "paper_reference": "Supplementary Fig. S11a-c; Supplementary Fig. S12; Supplementary Fig. S13a,b",
+          "expected": "Outputs exist for 5-year survival including confusion matrices, ROC/AUC metrics for train and test sets, and feature-importance or SHAP summaries for Naive Bayes, Random Forest, and XGBoost.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano5*/metrics.csv"
+        },
+        {
+          "id": "pf7.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "5-year confusion matrices reproduce the reported class bias and ranking.",
+          "paper_reference": "Supplementary Fig. S11a-c",
+          "expected": "Naive Bayes is unbalanced with almost all predictions in class 1; Random Forest reaches about 77% accuracy in both classes; XGBoost is best with almost 78% accuracy.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano5*/confusion_matrices.png"
+        },
+        {
+          "id": "pf7.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "5-year survival AUCs match the paper.",
+          "paper_reference": "Supplementary Fig. S12",
+          "expected": "5-year survival AUCs are NB train/test = 0.757/0.759, RF train/test = 0.969/0.853, and XGBoost train/test = 0.882/0.858.",
+          "tolerance": "±0.03",
+          "output_pattern": "stages/*/outputs/**/vivo_ano5*/metrics.csv"
+        },
+        {
+          "id": "pf7.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "5-year feature-importance rankings agree with the reported interpretation.",
+          "paper_reference": "Supplementary Fig. S13a,b",
+          "expected": "Clinical staging is the most important feature. Random Forest top five are clinical staging, year of diagnosis, surgery, age, and in-hospital treatment. XGBoost contains the same five features.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/**/vivo_ano5*/feature_importances.csv"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

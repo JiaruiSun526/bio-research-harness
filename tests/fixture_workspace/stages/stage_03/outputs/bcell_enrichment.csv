@@ -1,0 +1,7 @@
+pathway,database,pvalue,fdr,genes
+JAK-STAT signaling,KEGG,0.001,0.005,"JAK1,STAT3,IL6"
+Cytokine-cytokine receptor,KEGG,0.002,0.008,"IL6"
+NF-kB signaling,KEGG,0.005,0.02,"MYC"
+Immune system,Reactome,0.0005,0.003,"JAK1,STAT3,IL6"
+Signaling by interleukins,Reactome,0.001,0.005,"IL6,JAK1,STAT3"
+B cell receptor signaling,Reactome,0.003,0.012,"BCL2,MYC"

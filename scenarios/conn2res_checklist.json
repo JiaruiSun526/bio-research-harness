@@ -1,0 +1,300 @@
+{
+  "paper": {
+    "title": "Connectome-based reservoir computing with the conn2res toolbox",
+    "doi": "10.1038/s41467-024-44900-4"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "Conceptual schematics define reservoir computing, its connectome-based extension, and the application space targeted by conn2res.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "supplementary",
+          "check_type": "pipeline",
+          "verify": "A non-empty recreated schematic for the reservoir-computing overview exists.",
+          "paper_reference": "Fig.1a-c",
+          "expected": "At least one usable figure artifact reproducing the conceptual overview in Fig.1 is present (PNG/SVG/PDF or equivalent) and is non-empty.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig1*.*"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The reservoir-computing architecture summary matches the paper's description.",
+          "paper_reference": "Fig.1a",
+          "expected": "The figure should show an input layer feeding a reservoir with fixed recurrent connections and a readout module with adaptive connections, while also conveying that connectomes from multiple spatial scales and multiple local dynamics can be imposed on the reservoir.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig1*.*"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The application panels communicate the intended use cases of connectome-informed reservoirs.",
+          "paper_reference": "Fig.1b-c",
+          "expected": "The reproduced schematic should depict computational phenotyping across tasks and other applications such as lifespan, evolution, individual differences, and network perturbation/disease.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig1*.*"
+        },
+        {
+          "id": "pf1.4",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The historical progression from generic RNNs to connectome-based reservoirs is correctly represented.",
+          "paper_reference": "Fig.2a-c",
+          "expected": "The figure should show three distinct architectures: a classic RNN with learned recurrent connections, a conventional reservoir with fixed random recurrent connectivity and a trained readout, and a connectome-based reservoir whose fixed recurrent wiring is informed by an empirical structural connectome.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig2*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "conn2res is presented as a modular toolbox with defined user inputs, a five-stage workflow, six software modules, and broader flexibility than existing RC packages.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "A non-empty workflow/module summary artifact for conn2res exists.",
+          "paper_reference": "Fig.3a-c",
+          "expected": "At least one usable figure or summary artifact reproducing the conn2res workflow/modularity in Fig.3 is present and non-empty.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig3*.*"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The number and identity of the user-specified inputs are correct.",
+          "paper_reference": "Fig.3a",
+          "expected": "Exactly 6 user inputs are shown: task dataset, connectome, input nodes, readout nodes, local dynamics, and linear model.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig3*inputs*.json"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The workflow stages appear in the correct count and order.",
+          "paper_reference": "Fig.3b",
+          "expected": "Exactly 5 workflow stages are present in this order: fetch task dataset, set connectivity matrix, simulate reservoir dynamics, learning, assess performance.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig3*workflow*.json"
+        },
+        {
+          "id": "pf2.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The toolbox module list matches the paper.",
+          "paper_reference": "Fig.3c",
+          "expected": "Exactly 6 modules are listed: tasks.py, connectivity.py, reservoir.py, readout.py, performance.py, and plotting.py.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig3*modules*.json"
+        },
+        {
+          "id": "pf2.5",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The supplementary comparison table conveys the claimed breadth of conn2res relative to other RC Python packages.",
+          "paper_reference": "Table S1",
+          "expected": "The comparison table should show conn2res alongside other RC Python packages and indicate broader flexibility in network architecture, local dynamics, learning algorithms, task paradigms, and performance metrics.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*table*s1*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "In the human connectome tutorial example, task performance depends jointly on local nonlinearity and global dynamical regime in a task-specific manner.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "important",
+          "check_type": "pipeline",
+          "verify": "Example 1 outputs for both cognitive tasks are generated successfully.",
+          "paper_reference": "Fig.4, left and right columns",
+          "expected": "Non-empty artifacts exist for the perceptual decision-making and context-dependent decision-making examples, ideally including performance curves and/or underlying data tables for balanced accuracy and F1.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4*.*"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The human-connectome example uses the same dataset size and task setup reported in the paper.",
+          "paper_reference": "Section 'Example 1: toolbox components'; Fig.4",
+          "expected": "Metadata should report a human consensus connectome reconstructed from diffusion-weighted MRI with n = 66 subjects, visual-system input nodes, somatomotor readout nodes, 1000 trials per task, and a 70% training / 30% test split.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*example1*metadata*.json"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The number of repeated task realizations used to summarize Fig.4 is explicitly reported and consistent with one of the paper's stated values.",
+          "paper_reference": "Section 'Example 1: toolbox components' text / Fig.4 caption",
+          "expected": "Internal discrepancy in the paper: the main text says performance is reported across 50 different realizations of the task dataset, whereas the Fig.4 caption says solid lines are mean performance across 500 iterations with 95% confidence intervals. The reproduction should state the repetition count it used and match either 50 or 500 exactly.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*example1*metadata*.json"
+        },
+        {
+          "id": "pf3.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The perceptual decision-making task shows the same directional dependence on local and global dynamics.",
+          "paper_reference": "Fig.4 left column, fifth row",
+          "expected": "For perceptual decision making, the tanh curves should lie above the sigmoid curves, and tanh performance should decline as dynamics move from stable toward chaotic; sigmoid should show comparatively weak dependence on the dynamical regime. The same directional pattern should be visible in both balanced-accuracy and F1 plots.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4*perceptual*.*"
+        },
+        {
+          "id": "pf3.5",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The context-dependent decision-making task shows the same directional dependence on local and global dynamics.",
+          "paper_reference": "Fig.4 right column, fifth row",
+          "expected": "For context-dependent decision making, performance should improve as dynamics move from stable toward chaotic for both activation functions, with tanh outperforming sigmoid and showing the stronger dependence on dynamical regime. The same directional pattern should be visible in both balanced-accuracy and F1 plots.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig4*context*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "Human connectome topology boosts memory capacity over rewired nulls, and intrinsic brain networks show region-specific computational specialization.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Artifacts for the human memory-capacity and regional-specificity analyses are present and usable.",
+          "paper_reference": "Fig.5a-b",
+          "expected": "Non-empty outputs exist for both the human null-model comparison and the intrinsic-network regional-specificity analysis, including curves and/or statistics tables.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5*.*"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The human memory-capacity analysis uses the same sample size and null-model design as the paper.",
+          "paper_reference": "Fig.5a",
+          "expected": "The analysis should use a human consensus connectome with n = 66 subjects, subcortical regions as input nodes, cortical regions as readout nodes, and 500 rewired null connectomes preserving density and degree sequence.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5a*metadata*.json"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The reported significance of the empirical-vs-null comparison at criticality is reproduced.",
+          "paper_reference": "Fig.5a right",
+          "expected": "At criticality, αcrit = 1, the empirical human network should outperform rewired nulls with p = 0.002.",
+          "tolerance": "α ±0; p ±0.001",
+          "output_pattern": "stages/*/outputs/*fig5a*null*.csv"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The qualitative shape of the human memory-capacity result matches the paper.",
+          "paper_reference": "Fig.5a left-right",
+          "expected": "The human memory-capacity curve should peak in the critical regime, and the empirical-network summary point should sit above the cloud of rewired-null points in z-scored performance.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5a*.*"
+        },
+        {
+          "id": "pf4.5",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The regional-specificity statistical test matches the reported result.",
+          "paper_reference": "Fig.5b left-right",
+          "expected": "At αcrit = 1, the one-way ANOVA across intrinsic-network readout modules should give F = 1143.50 with p < 0.002; the paper also states that all intrinsic networks differ across the broader high-performance regime.",
+          "tolerance": "F ±5%; accept any p < 0.01 with the same significance conclusion",
+          "output_pattern": "stages/*/outputs/*fig5b*stats*.json"
+        },
+        {
+          "id": "pf4.6",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The network-level ranking of readout performance matches the paper's interpretation.",
+          "paper_reference": "Fig.5b left-right",
+          "expected": "Default mode and somatomotor should emerge as the top-performing readout modules for perceptual decision making, while the remaining intrinsic networks perform worse.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5b*.*"
+        }
+      ]
+    },
+    {
+      "id": "pf5",
+      "name": "Across species, empirical connectomes show similar memory-capacity dependence on dynamics and usually outperform rewired nulls at peak performance.",
+      "items": [
+        {
+          "id": "pf5.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "Cross-species memory-capacity outputs and null comparisons are generated successfully.",
+          "paper_reference": "Fig.5c",
+          "expected": "Non-empty artifacts exist for the cross-species analysis, including memory-capacity curves for all species and empirical-vs-null comparison outputs.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5c*.*"
+        },
+        {
+          "id": "pf5.2",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The cross-species analysis includes the same species set and null-model count reported in the paper.",
+          "paper_reference": "Fig.5c",
+          "expected": "Exactly 4 species are analyzed: fruit fly, mouse, rat, and macaque; sensory areas are used as input nodes, motor areas as readout nodes, and each empirical connectome is compared against 500 rewired nulls.",
+          "tolerance": "±0",
+          "output_pattern": "stages/*/outputs/*fig5c*metadata*.json"
+        },
+        {
+          "id": "pf5.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The shared qualitative dependence of memory capacity on dynamics is reproduced across species.",
+          "paper_reference": "Fig.5c left",
+          "expected": "All four species should show broadly similar memory-capacity curves: performance rises toward the critical regime and then drops in more chaotic regimes.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5c*memory*.csv"
+        },
+        {
+          "id": "pf5.4",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The species-specific peak-performance significance results match the paper.",
+          "paper_reference": "Fig.5c right",
+          "expected": "Peak-memory-capacity comparisons should match the reported values: fruit fly p = 0.11 at αpeak = 0.9; mouse p < 0.002 at αpeak = 1.05; rat p < 0.002 at αpeak = 1.15; macaque p < 0.002 at αpeak = 1.15.",
+          "tolerance": "α ±0.05; fruit fly p ±0.02; for mouse/rat/macaque accept any p < 0.01",
+          "output_pattern": "stages/*/outputs/*fig5c*null*.csv"
+        },
+        {
+          "id": "pf5.5",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The direction of empirical-versus-null differences at peak memory capacity is consistent across species.",
+          "paper_reference": "Fig.5c right",
+          "expected": "Empirical connectomes should outperform rewired nulls at peak memory capacity for mouse, rat, and macaque, whereas fruit fly should not show a significant advantage over rewired nulls.",
+          "tolerance": null,
+          "output_pattern": "stages/*/outputs/*fig5c*.*"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

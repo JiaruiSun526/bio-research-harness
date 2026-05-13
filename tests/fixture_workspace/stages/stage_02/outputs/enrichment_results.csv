@@ -1,0 +1,9 @@
+pathway,database,pvalue,fdr,genes
+JAK-STAT signaling,KEGG,0.0001,0.001,"JAK1,STAT3,IL6"
+Cytokine-cytokine receptor,KEGG,0.0003,0.002,"IL6,TNF"
+p53 signaling,KEGG,0.0005,0.003,"TP53,BRCA1"
+NF-kB signaling,KEGG,0.001,0.006,"TNF,MYC"
+Immune system,Reactome,0.0001,0.001,"JAK1,STAT3,IL6,TNF"
+Signaling by interleukins,Reactome,0.0002,0.001,"IL6,JAK1,STAT3"
+DNA repair,Reactome,0.002,0.01,"TP53,BRCA1"
+Apoptosis,Reactome,0.003,0.012,"TP53,TNF"

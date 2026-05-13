@@ -1,0 +1,1038 @@
+name = "phagecounting"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/user_paper/data/20220901_ODbasedMOIresponse_optimalphysio_detectionplate.xlsx",
+    "papers/user_paper/data/20220901_ODbasedMOIresponse_optimalphysio_infectionplate.xlsx",
+    "papers/user_paper/data/20221022_ODbasedMOIresponse_LBM_run2.xlsx",
+    "papers/user_paper/data/TECAN_230114.csv",
+    "papers/user_paper/data/TECAN_230119_fig3.csv",
+    "papers/user_paper/data/TECAN_230212.csv",
+    "papers/user_paper/data/TECAN_230214.csv",
+    "papers/user_paper/data/TECAN_230328a.csv",
+    "papers/user_paper/data/TECAN_230328b.csv",
+    "papers/user_paper/data/TECAN_240128.csv",
+    "papers/user_paper/data/TECAN_240130.csv",
+    "papers/user_paper/data/TECAN_240201.csv",
+    "papers/user_paper/data/d20230216_ODbasedMOIresponsesurface_run1_24-Feb-2023.mat",
+    "papers/user_paper/data/d20230216_ODbasedMOIresponsesurface_run2_24-Feb-2023.mat",
+    "papers/user_paper/data/phage_extraction_230119/df_1e0.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e1.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e2.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e3.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e4.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e5.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e6.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e7.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e8.csv",
+    "papers/user_paper/data/phage_extraction_230119/df_1e9.csv",
+    "papers/user_paper/data/spontaneous_induction_phage.csv",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "Phage extraction time-series summaries (2023-01-19 condition series)"
+path = "data/phage_extraction_230119/df_1e0.csv"
+description = '''Derived time-series summary tables from the phage_extraction_230119 experiment. This group includes df_1e0.csv, df_1e1.csv, df_1e2.csv, df_1e3.csv, df_1e4.csv, df_1e5.csv, df_1e6.csv, df_1e7.csv, df_1e8.csv, and df_1e9.csv; the filenames encode a 1e0 through 1e9 condition series that should be used to pick the matching experimental condition. In each file, rows are sampled time points and columns are tdata (elapsed time; units not stated in the file), ydata (response value), and yerr (associated uncertainty/error bar). Use these files for plotting or fitting extracted curves for a specific 1eN condition; note that df_1e6.csv, df_1e8.csv, and df_1e9.csv contain fewer time points than the others.'''
+
+[[data.catalog]]
+name = "TECAN kinetic plate-reader CSV exports"
+path = "data/TECAN_230114.csv"
+description = '''Raw Tecan i-control kinetic exports in CSV form for TECAN_230114.csv, TECAN_230119_fig3.csv, TECAN_230212.csv, TECAN_230214.csv, TECAN_230328a.csv, TECAN_230328b.csv, TECAN_240128.csv, TECAN_240130.csv, and TECAN_240201.csv. The layout is wide and transposed relative to tidy time-series data: columns 1..N are sequential acquisition cycles/time points, while rows are labeled by the first column and include at least Time [s] and temperature plus many later measurement traces. The later row labels likely identify wells or measurement channels, but that mapping is not visible in the sample and should be checked in the first column before analysis. Use the date/suffix in the filename to choose the correct run, for example 230328a versus 230328b for two same-day runs and 230119_fig3 for the 2023-01-19 Figure 3 dataset.'''
+
+[[data.catalog]]
+name = "Spontaneous induction phage x-y points"
+path = "data/spontaneous_induction_phage.csv"
+description = '''Small two-column numeric dataset of x-y pairs with no explicit header row. The preview treated the first data pair as column names, so this file should be read with header=None to recover all observations. Rows are individual points and both columns are continuous numeric values, but variable names and units are not provided in the file. Use it as a compact plotted or digitized dataset for spontaneous induction phage analysis after assigning axis meaning from project context.'''
+
+[[data.catalog]]
+name = "OD-based MOI response-surface MATLAB files"
+path = "data/d20230216_ODbasedMOIresponsesurface_run1_24-Feb-2023.mat"
+description = '''MATLAB binary files for d20230216_ODbasedMOIresponsesurface_run1_24-Feb-2023.mat and d20230216_ODbasedMOIresponsesurface_run2_24-Feb-2023.mat. Only the filenames and sizes are visible here; they appear to be two runs of an OD-based MOI response-surface dataset dated 2023-02-16. Inspect with scipy.io.loadmat() to list variables, or use h5py if the files are in MATLAB v7.3 format, before deciding which arrays to analyze.'''
+
+[[data.catalog]]
+name = "Optimal physiology detection-plate workbook (2022-09-01)"
+path = "data/20220901_ODbasedMOIresponse_optimalphysio_detectionplate.xlsx"
+description = '''Excel workbook for the 2022-09-01 OD-based MOI response optimal-physiology detection plate. Sheet2 is the only populated sheet and contains a 90 x 200 mixed-format Tecan export with instrument metadata text and a wide numeric measurement block; sample values indicate time-like entries such as 373.2 and 746.5 alongside temperature/reading values. Use pd.ExcelFile() or pd.read_excel() on Sheet2 and inspect row positions/skiprows to isolate the actual measurement matrix, because the workbook is not stored as a clean rectangular data table. Sheet1 is empty.'''
+
+[[data.catalog]]
+name = "Optimal physiology infection-plate workbook (2022-09-01)"
+path = "data/20220901_ODbasedMOIresponse_optimalphysio_infectionplate.xlsx"
+description = '''Excel workbook for the 2022-09-01 OD-based MOI response optimal-physiology infection plate. Sheet2 is the only populated sheet and has the same mixed Tecan-export structure as the detection-plate file, but much narrower at 90 x 10, with instrument metadata and a small numeric block in the same sheet. Use sheet-specific import and inspect rows manually to determine where the measurement block begins; do not assume standard column headers or tidy row semantics. Sheet1 is empty.'''
+
+[[data.catalog]]
+name = "OD-based MOI response LBM run2 workbook (2022-10-22)"
+path = "data/20221022_ODbasedMOIresponse_LBM_run2.xlsx"
+description = '''Excel workbook for the 2022-10-22 OD-based MOI response LBM run2 experiment. Two sheets are populated: Sheet3 (90 x 232) and Sheet2 (90 x 10), both using a Tecan-export layout that mixes instrument metadata text with wide numeric sequences, while Sheet1 is empty. Sample values show time-like numeric series embedded in the sheets, so rows rather than columns define the record type and the true measurement block must be isolated with custom row skipping or manual inspection. Use this workbook when you specifically need the 2022-10-22 LBM run2 raw export, and choose Sheet3 or Sheet2 based on which sub-export matches the analysis.'''
+
+# -- Plate/sample layouts extracted from notebooks --
+plate_layouts_json = '''[
+  {
+    "experiment": "lambda_ts calibration and unknown-sample plate",
+    "notebook": "02_Fig2bcd_step1_lambda_TS.ipynb",
+    "data_file": "../data/TECAN_240128.csv",
+    "figure": "Fig2b-d; Sfig4a",
+    "conditions": {
+      "LBM blank": [
+        "F7",
+        "F8"
+      ],
+      "no dilu": [
+        "A1",
+        "A2"
+      ],
+      "1e1 dilu": [
+        "A3",
+        "A4"
+      ],
+      "1e2 dilu": [
+        "A5",
+        "A6"
+      ],
+      "1e3 dilu": [
+        "A7",
+        "A8"
+      ],
+      "1e4 dilu": [
+        "B1",
+        "B2"
+      ],
+      "1e5 dilu": [
+        "B3",
+        "B4"
+      ],
+      "1e6 dilu": [
+        "B5",
+        "B6"
+      ],
+      "1e7 dilu": [
+        "B7",
+        "B8"
+      ],
+      "sample group A": [
+        "C1",
+        "C2"
+      ],
+      "sample group B": [
+        "C3",
+        "C4"
+      ],
+      "sample group C": [
+        "C5",
+        "C6"
+      ],
+      "uninfected": [
+        "C7",
+        "C8"
+      ]
+    },
+    "control_samples": [
+      "F7",
+      "F8",
+      "C7",
+      "C8"
+    ],
+    "notes": "lambda_ts calibration in MG1655, LBM; plots/titles indicate 38 C. Groups A-C are the unknown samples later quantified against the calibration."
+  },
+  {
+    "experiment": "single-phage assay plate in LBMM",
+    "notebook": "03_Fig2e_single_phage.ipynb",
+    "data_file": "../data/TECAN_230328a.csv, ../data/TECAN_230328b.csv",
+    "figure": "Fig2e",
+    "conditions": {
+      "phage added (+Phage)": [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "A5",
+        "A6",
+        "A7",
+        "A8",
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "D1",
+        "D2",
+        "D3",
+        "D4",
+        "D5",
+        "D6",
+        "D7",
+        "D8"
+      ],
+      "no phage (-Phage)": [
+        "E3",
+        "E4",
+        "E5",
+        "E6",
+        "E7",
+        "E8",
+        "F1",
+        "F2",
+        "F3",
+        "F4"
+      ],
+      "positive control": [
+        "E1",
+        "E2"
+      ],
+      "LBMM blank": [
+        "F6",
+        "F7",
+        "F8"
+      ]
+    },
+    "control_samples": [
+      "E1",
+      "E2",
+      "E3",
+      "E4",
+      "E5",
+      "E6",
+      "E7",
+      "E8",
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "F6",
+      "F7",
+      "F8"
+    ],
+    "notes": "LBMM medium. The notebook explicitly labels all A1-D8 wells as +Phage, E3-E8/F1-F4 as -Phage, and E1-E2 as positive controls."
+  },
+  {
+    "experiment": "TECAN_230119 phage sampling layout (no dilution)",
+    "notebook": "06_Figs3df_and_Sfig8e_comparing_models.ipynb, Fig3ce_r_model.ipynb, Fig3df_comparing_models.ipynb",
+    "data_file": "../data/TECAN_230119.csv, ../data/data_230119_all_csv/df_1e0.csv, ../data/data_230119_all_csv/df_1e1.csv, ../data/data_230119_all_csv/df_1e2.csv, ../data/data_230119_all_csv/df_1e3.csv, ../data/data_230119_all_csv/df_1e4.csv, ../data/data_230119_all_csv/df_1e5.csv, ../data/data_230119_all_csv/df_1e6.csv, ../data/data_230119_all_csv/df_1e7.csv, ../data/data_230119_all_csv/df_1e8.csv, ../data/data_230119_all_csv/df_1e9.csv",
+    "figure": "Fig3c/e, Fig3d/f, Sfig8e",
+    "conditions": {
+      "0- (no dilution)": [
+        "F3",
+        "F4"
+      ],
+      "1 h (no dilution)": [
+        "A1",
+        "A2"
+      ],
+      "2 h (no dilution)": [
+        "A3",
+        "A4"
+      ],
+      "3 h (no dilution)": [
+        "A5",
+        "A6"
+      ],
+      "4 h (no dilution)": [
+        "A7",
+        "A8"
+      ],
+      "5 h (no dilution)": [
+        "B1",
+        "B2"
+      ],
+      "6 h (no dilution)": [
+        "B3",
+        "B4"
+      ],
+      "7 h (no dilution)": [
+        "B5",
+        "B6"
+      ],
+      "8 h (no dilution)": [
+        "B7",
+        "B8"
+      ],
+      "D2 (no dilution)": [
+        "C1",
+        "C2"
+      ]
+    },
+    "control_samples": [
+      "F3",
+      "F4"
+    ],
+    "notes": "Hardcoded as dict_no_dilu. Labels '0-' and 'D2' are kept verbatim from the notebook."
+  },
+  {
+    "experiment": "TECAN_230119 phage sampling layout (1e1 dilution)",
+    "notebook": "06_Figs3df_and_Sfig8e_comparing_models.ipynb, Fig3ce_r_model.ipynb, Fig3df_comparing_models.ipynb",
+    "data_file": "../data/TECAN_230119.csv, ../data/data_230119_all_csv/df_1e0.csv, ../data/data_230119_all_csv/df_1e1.csv, ../data/data_230119_all_csv/df_1e2.csv, ../data/data_230119_all_csv/df_1e3.csv, ../data/data_230119_all_csv/df_1e4.csv, ../data/data_230119_all_csv/df_1e5.csv, ../data/data_230119_all_csv/df_1e6.csv, ../data/data_230119_all_csv/df_1e7.csv, ../data/data_230119_all_csv/df_1e8.csv, ../data/data_230119_all_csv/df_1e9.csv",
+    "figure": "Fig3c/e, Fig3d/f, Sfig8e",
+    "conditions": {
+      "0- (1e1 dilution)": [
+        "F3",
+        "F4"
+      ],
+      "1 h (1e1 dilution)": [
+        "D1",
+        "D2"
+      ],
+      "2 h (1e1 dilution)": [
+        "D3",
+        "D4"
+      ],
+      "3 h (1e1 dilution)": [
+        "D5",
+        "D6"
+      ],
+      "4 h (1e1 dilution)": [
+        "D7",
+        "D8"
+      ],
+      "5 h (1e1 dilution)": [
+        "E1",
+        "E2"
+      ],
+      "6 h (1e1 dilution)": [
+        "E3",
+        "E4"
+      ],
+      "7 h (1e1 dilution)": [
+        "E5",
+        "E6"
+      ],
+      "8 h (1e1 dilution)": [
+        "E7",
+        "E8"
+      ],
+      "D2 (1e1 dilution)": [
+        "F1",
+        "F2"
+      ]
+    },
+    "control_samples": [
+      "F3",
+      "F4"
+    ],
+    "notes": "Hardcoded as dict_1e1_dilu. Labels '0-' and 'D2' are kept verbatim from the notebook."
+  },
+  {
+    "experiment": "TECAN_230119 infection plate initial phage concentrations",
+    "notebook": "06_Figs3df_and_Sfig8e_comparing_models.ipynb, Fig3ce_r_model.ipynb, Fig3df_comparing_models.ipynb",
+    "data_file": "../data/TECAN_230119.csv",
+    "figure": "Fig3c/e, Fig3d/f, Sfig8e",
+    "conditions": {
+      "1e10 PFU/mL": [
+        "A1",
+        "A2",
+        "B1",
+        "B2"
+      ],
+      "1e9 PFU/mL": [
+        "A3",
+        "A4",
+        "B3",
+        "B4"
+      ],
+      "1e8 PFU/mL": [
+        "A5",
+        "A6",
+        "B5",
+        "B6"
+      ],
+      "1e7 PFU/mL": [
+        "A7",
+        "A8",
+        "B7",
+        "B8"
+      ],
+      "1e6 PFU/mL": [
+        "C1",
+        "C2",
+        "D1",
+        "D2"
+      ],
+      "1e5 PFU/mL": [
+        "C3",
+        "C4",
+        "D3",
+        "D4"
+      ],
+      "1e4 PFU/mL": [
+        "C5",
+        "C6",
+        "D5",
+        "D6"
+      ],
+      "1e3 PFU/mL": [
+        "C7",
+        "C8",
+        "D7",
+        "D8"
+      ],
+      "1e2 PFU/mL": [
+        "E1",
+        "E2",
+        "F1",
+        "F2"
+      ],
+      "1e1 PFU/mL": [
+        "E3",
+        "E4",
+        "F3",
+        "F4"
+      ]
+    },
+    "control_samples": [],
+    "notes": "Hardcoded as my_dict. These are the plate wells assigned to the initial phage inoculum concentrations."
+  },
+  {
+    "experiment": "Representative wells paired with phage time-series files",
+    "notebook": "06_Figs3df_and_Sfig8e_comparing_models.ipynb, Fig3ce_r_model.ipynb, Fig3df_comparing_models.ipynb",
+    "data_file": "../data/TECAN_230119.csv, ../data/data_230119_all_csv/df_1e0.csv, ../data/data_230119_all_csv/df_1e1.csv, ../data/data_230119_all_csv/df_1e2.csv, ../data/data_230119_all_csv/df_1e3.csv, ../data/data_230119_all_csv/df_1e4.csv, ../data/data_230119_all_csv/df_1e5.csv, ../data/data_230119_all_csv/df_1e6.csv, ../data/data_230119_all_csv/df_1e7.csv, ../data/data_230119_all_csv/df_1e8.csv, ../data/data_230119_all_csv/df_1e9.csv",
+    "figure": "Fig3c/e",
+    "conditions": {
+      "1e10 PFU/mL": [
+        "A1"
+      ],
+      "1e9 PFU/mL": [
+        "A3"
+      ],
+      "1e8 PFU/mL": [
+        "A5"
+      ],
+      "1e7 PFU/mL": [
+        "A7"
+      ],
+      "1e6 PFU/mL": [
+        "C1"
+      ],
+      "1e5 PFU/mL": [
+        "C3"
+      ],
+      "1e4 PFU/mL": [
+        "C5"
+      ],
+      "1e3 PFU/mL": [
+        "C7"
+      ],
+      "1e2 PFU/mL": [
+        "E1"
+      ],
+      "1e1 PFU/mL": [
+        "E3"
+      ]
+    },
+    "control_samples": [],
+    "notes": "This mapping comes from the parallel assignments index_list = ['A1','A3','A5','A7','C1','C3','C5','C7','E1','E3'] and labels = ['1e10',...,'1e1']."
+  },
+  {
+    "experiment": "Selected wells for growth-rate fitting",
+    "notebook": "06_Figs3df_and_Sfig8e_comparing_models.ipynb, Fig3b_growth_rate_fitting.ipynb, Fig3ce_r_model.ipynb, Fig3df_comparing_models.ipynb",
+    "data_file": "../data/TECAN_230119.csv",
+    "figure": "Fig3b; Fig3c/e; Fig3d/f; Sfig5b-c",
+    "conditions": {
+      "growth-rate fitting wells": [
+        "E5",
+        "E6",
+        "F5",
+        "F6"
+      ]
+    },
+    "control_samples": [
+      "E5",
+      "E6",
+      "F5",
+      "F6"
+    ],
+    "notes": "These four wells are explicitly grouped repeatedly in the notebooks for nutrient-limited growth fitting and OD-to-CFU modeling."
+  },
+  {
+    "experiment": "LBGM lysogenization plate",
+    "notebook": "Fig5f_lysogenization.ipynb",
+    "data_file": "../data/TECAN_230212.csv, ../data/TECAN_230214.csv",
+    "figure": "Fig5f; Sfig5f",
+    "conditions": {
+      "Initial OD600 = 0.01, replicate a": [
+        "A1",
+        "B1"
+      ],
+      "Initial OD600 = 0.01, replicate b": [
+        "A2",
+        "B2"
+      ],
+      "Initial OD600 = 0.02, replicate a": [
+        "A3",
+        "B3"
+      ],
+      "Initial OD600 = 0.02, replicate b": [
+        "A4",
+        "B4"
+      ],
+      "Initial OD600 = 0.04, replicate a": [
+        "A5",
+        "B5"
+      ],
+      "Initial OD600 = 0.04, replicate b": [
+        "A6",
+        "B6"
+      ],
+      "Initial OD600 = 0.08, replicate a": [
+        "A7",
+        "B7"
+      ],
+      "Initial OD600 = 0.08, replicate b": [
+        "A8",
+        "B8"
+      ],
+      "Initial OD600 = 0.25, replicate a": [
+        "C1",
+        "D1"
+      ],
+      "Initial OD600 = 0.25, replicate b": [
+        "C2",
+        "D2"
+      ],
+      "Initial OD600 = 0.31, replicate a": [
+        "C3",
+        "D3"
+      ],
+      "Initial OD600 = 0.31, replicate b": [
+        "C4",
+        "D4"
+      ],
+      "Initial OD600 = 0.50, replicate a": [
+        "C5",
+        "D5"
+      ],
+      "Initial OD600 = 0.50, replicate b": [
+        "C6",
+        "D6"
+      ],
+      "Initial OD600 = 1.02, replicate a": [
+        "C7",
+        "D7"
+      ],
+      "Initial OD600 = 1.02, replicate b": [
+        "C8",
+        "D8"
+      ],
+      "inoculated": [
+        "E1",
+        "F1"
+      ],
+      "MG inoculated": [
+        "E2",
+        "F2"
+      ],
+      "MG D2-a": [
+        "E3",
+        "F3"
+      ],
+      "MG D2-b": [
+        "E4",
+        "F4"
+      ]
+    },
+    "control_samples": [
+      "E1",
+      "F1",
+      "E2",
+      "F2",
+      "E3",
+      "F3",
+      "E4",
+      "F4"
+    ],
+    "notes": "LBGM medium ('cell culture in LBGM' in notebook). The OD labels are taken directly from subplot titles such as 'OD = 0.01-a'. Wells C8/D8 belong to the 'Initial OD600 = 1.02, replicate b' condition later used for model fitting."
+  }
+]'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: phagecounting
+
+## Background
+We will use microplate-reader OD trajectories of infected *E. coli* cultures to quantify phage abundance, fit mechanistic infection models, and infer rates of lysogenization and spontaneous induction under changing host physiology. The locally available inputs include raw TECAN exports (`TECAN_230114.csv`, `TECAN_230119_fig3.csv`, `TECAN_230212.csv`, `TECAN_230214.csv`, `TECAN_230328a.csv`, `TECAN_230328b.csv`, `TECAN_240128.csv`, `TECAN_240130.csv`, `TECAN_240201.csv`), summarized phage-extraction time courses (`phage_extraction_230119/df_1e0.csv` through `df_1e9.csv`), MOI-response `.mat` files (`d20230216_ODbasedMOIresponsesurface_run1_24-Feb-2023.mat`, `...run2...mat`), and a headerless spontaneous-induction source-data file (`spontaneous_induction_phage.csv`). The computational question is how much information about phage number, lytic kinetics, and lysogenic fate can be recovered from OD dynamics alone when infection occurs continuously in the plate reader.
+
+
+## Experimental Design
+For the lambda_ts calibration and unknown-sample plate in `../data/TECAN_240128.csv`, I set up a dilution series in MG1655 in LBM (38 C) spanning no dilution through `1e7 dilu`, with replicate wells `A1-A2` (no dilu), `A3-A4` (`1e1 dilu`), `A5-A6` (`1e2 dilu`), `A7-A8` (`1e3 dilu`), `B1-B2` (`1e4 dilu`), `B3-B4` (`1e5 dilu`), `B5-B6` (`1e6 dilu`), and `B7-B8` (`1e7 dilu`). I included unknown sample groups `A` (`C1-C2`), `B` (`C3-C4`), and `C` (`C5-C6`), with `LBM blank` controls in `F7-F8` and `uninfected` controls in `C7-C8`.
+
+For the single-phage assay in LBMM, using `../data/TECAN_230328a.csv` and `../data/TECAN_230328b.csv`, I assigned all wells `A1-D8` as `+Phage`, giving a continuous treatment block across 32 wells. I used `E3-E8` and `F1-F4` as `-Phage` controls, `E1-E2` as positive controls, and `F6-F8` as `LBMM blank` controls.
+
+For the TECAN_230119 phage sampling layout without dilution, using `../data/TECAN_230119.csv` together with the time-series files `../data/data_230119_all_csv/df_1e0.csv` through `df_1e9.csv`, I sampled timepoints from `1 h` to `8 h` in duplicate at `A1-A2`, `A3-A4`, `A5-A6`, `A7-A8`, `B1-B2`, `B3-B4`, `B5-B6`, and `B7-B8`, respectively. I kept the notebook’s `0-` control in `F3-F4` and the verbatim `D2` condition in `C1-C2`.
+
+For the matched `1e1 dilution` TECAN_230119 phage sampling layout, again using `../data/TECAN_230119.csv` and `../data/data_230119_all_csv/df_1e0.csv` through `df_1e9.csv`, I assigned duplicate wells for `1 h` to `8 h` at `D1-D2`, `D3-D4`, `D5-D6`, `D7-D8`, `E1-E2`, `E3-E4`, `E5-E6`, and `E7-E8`. I used `F3-F4` as the `0- (1e1 dilution)` control and retained the notebook’s `D2 (1e1 dilution)` condition in `F1-F2`.
+
+For the TECAN_230119 infection plate of initial phage concentrations in `../data/TECAN_230119.csv`, I distributed starting inocula from `1e10 PFU/mL` down to `1e1 PFU/mL` across four wells per condition: `A1-A2/B1-B2` (`1e10`), `A3-A4/B3-B4` (`1e9`), `A5-A6/B5-B6` (`1e8`), `A7-A8/B7-B8` (`1e7`), `C1-C2/D1-D2` (`1e6`), `C3-C4/D3-D4` (`1e5`), `C5-C6/D5-D6` (`1e4`), `C7-C8/D7-D8` (`1e3`), `E1-E2/F1-F2` (`1e2`), and `E3-E4/F3-F4` (`1e1`). This plate therefore covers a full concentration range from `1e1` to `1e10 PFU/mL`.
+
+For representative wells paired with the phage time-series files, I linked single wells from `../data/TECAN_230119.csv` to the companion files `../data/data_230119_all_csv/df_1e0.csv` through `df_1e9.csv` as follows: `A1` (`1e10 PFU/mL`), `A3` (`1e9`), `A5` (`1e8`), `A7` (`1e7`), `C1` (`1e6`), `C3` (`1e5`), `C5` (`1e4`), `C7` (`1e3`), `E1` (`1e2`), and `E3` (`1e1`). These representative wells span the same `1e1-1e10 PFU/mL` range as the full infection plate.
+
+For growth-rate fitting in `../data/TECAN_230119.csv`, I consistently used wells `E5`, `E6`, `F5`, and `F6` as the designated fitting set. I treated these four wells as the control/reference group for that experiment.
+
+For the LBGM lysogenization plate, using `../data/TECAN_230212.csv` and `../data/TECAN_230214.csv`, I arranged paired wells across an initial `OD600` range of `0.01` to `1.02`: `A1/B1` and `A2/B2` (`0.01`, replicates a and b), `A3/B3` and `A4/B4` (`0.02`), `A5/B5` and `A6/B6` (`0.04`), `A7/B7` and `A8/B8` (`0.08`), `C1/D1` and `C2/D2` (`0.25`), `C3/D3` and `C4/D4` (`0.31`), `C5/D5` and `C6/D6` (`0.50`), and `C7/D7` and `C8/D8` (`1.02`). I also included control/reference conditions `inoculated` (`E1/F1`), `MG inoculated` (`E2/F2`), `MG D2-a` (`E3/F3`), and `MG D2-b` (`E4/F4`).
+## Research Goals
+1. Parse and organize the local OD and phage-counting datasets into experiment-level tables suitable for fitting, prioritizing CSV and `.mat` files over Excel files.
+2. Build OD-based calibration curves that map lysis OD to initial phage concentration, and quantify counting agreement against plaque-based reference measurements where matched calibration/unknown datasets are available.
+3. Reproduce the single-phage sensitivity analysis by classifying wells as lysed or unlysed from their OD traces and comparing the observed lysis frequency to the Poisson expectation.
+4. Parameterize bacterial growth in uninfected cultures using Monod-style nutrient-limited growth, including the OD-to-cell-density conversion needed for LB-based media.
+5. Fit the coupled bacteria-phage ODE model jointly across MOI conditions, comparing a null model to variants where one infection parameter depends on the host’s instantaneous growth rate.
+6. Use the fitted infection models to predict extracted phage time courses and compute the composite viral growth parameter \(R\) for cross-model comparison.
+7. Quantify lysogen abundance from growth curves under kanamycin selection and fit the single-cell lysogenization model as a function of MOI at a fixed growth state.
+8. Extend the lysogeny analysis across host growth rates, fit phenomenological growth-rate dependencies of the lysogeny parameters, and generate the MOI-by-growth-rate fate surface.
+9. Fit the spontaneous-induction model to lysogen OD dynamics and released-phage measurements, with induction rate modeled as a function of host growth rate.
+
+## Methodological Preferences
+- Prefer `pandas.read_csv` and `scipy.io.loadmat`; use `.xlsx` only if `pandas.read_excel` works without extra installation. Do not rely on Excel-specific packages.
+- Parse TECAN exports by taking the row labeled `Time [s]` as the time axis, dropping metadata rows, and converting well rows into a long-format table.
+- Blank-subtract OD using blank-medium wells from the same plate before any peak calling or fitting.
+- For summarized source-data style files such as `phage_extraction_230119/df_1e*.csv`, use the provided mean (`ydata`) and SEM (`yerr`) directly after confirming the file-to-condition mapping.
+- Detect lysis OD as the first post-infection local maximum in the blank-subtracted OD trace; `scipy.signal.find_peaks` is acceptable. If denoising is necessary, use only a minimal 3-point rolling mean or Savitzky-Golay smoothing for peak detection, not for model fitting.
+- Use the complex-media calibration form \(y=kx+b\), where \(y\) is lysis OD and \(x=\log_{10}\) initial phage concentration; use the minimal-media calibration form \(\log_{10} y = kx+b\).
+- For counting-performance assessment, report parity plots, fold change \(C_{\text{OD}}/C_{\text{plaque}}\), and coefficient of variation across replicate OD-based measurements.
+- For single-phage detection, classify lysis using \(\Delta OD\ge 0.3\), compute the expected lysis probability from a Poisson model with \(\lambda=0.38\) PFU per well, and use `scipy.stats.binomtest`.
+- Fit ODE models with `scipy.integrate.solve_ivp`, preferably `method="LSODA"`; use `rtol` around \(10^{-6}\) and `atol` around \(10^{-9}\).
+- Use `scipy.optimize.dual_annealing` for global search, followed by `scipy.optimize.minimize(method="L-BFGS-B")` for local refinement.
+- Use \(X=1\) growth phase for minimal media and scan \(X\in\{1,2,3\}\) for LB-based media; expect \(X=3\) to be the working model for LBM/LBGM.
+- Fix the infected-cell stage number at \(M=5\) unless explicitly running a sensitivity check.
+- Fit infection parameters jointly across all MOI conditions for a given medium; do not fit each MOI independently.
+- Compare infection-model variants by the normalized OD MSE used in the fitting objective, then validate them against extracted phage trajectories rather than using arbitrary ML-style cross-validation.
+- Full posterior sampling is not available; replace it with a 200-member bootstrap or multistart refit ensemble.
+- For phage-validation plots, use the observable \(P_{\text{all}}(t)=P(t)+B\,I_M(t)\).
+- For lysogen quantification, fit exponential growth only over the OD window 0.02 to 0.1 and extrapolate back to the dilution time.
+- Fit lysogeny-vs-MOI curves in log space, constrain \(q_1\le q_2\), and scan \(\text{MOI}^*\in\{1,2,3\}\).
+- When high-MOI repression is visible, include the extra repression term \(R_n\); do not force a monotone increase with MOI.
+- For the experimental fate surface, use `scipy.interpolate.griddata` on \((\log_{10}\text{MOI}, g)\) and smooth with `scipy.ndimage.median_filter`; do not implement a custom natural-neighbor algorithm.
+- For spontaneous induction, treat the adsorption-capable \(r\)-model as the primary model and use no-adsorption fits only as sensitivity analyses.
+
+## What to Approve
+- A plan that clearly separates calibration, lytic-kinetics fitting, lysogeny fitting, and spontaneous-induction fitting into distinct stages.
+- Correct use of local files: raw TECAN CSVs for OD trajectories, `.mat` files for processed MOI-response surfaces if helpful, and `phage_extraction_230119/df_1e*.csv` for summarized phage-extraction curves after condition verification.
+- Joint ODE fitting across all MOIs within a condition, with \(M=5\) fixed and growth-rate-dependent variants limited to one changing infection parameter at a time.
+- Use of `solve_ivp` plus `dual_annealing`/`L-BFGS-B`, with explicit parameter bounds and nonnegativity constraints.
+- Replacement of unavailable posterior-sampling methods with a concrete bootstrap or repeated-refit ensemble of about 200 fits.
+- Explicit handling of the OD-to-cell conversion issue in LB-based media, rather than silently assuming OD is proportional to cell count everywhere.
+- Use of the exact fitting objectives from the study: normalized OD SSE/MSE for infection dynamics, log-space SSE for lysogeny curves, and combined OD-plus-log-phage loss for spontaneous induction.
+- Validation against extracted phage trajectories, not just goodness-of-fit to OD.
+- Reasonable parameter ranges and units for \(r\), \(B\), \(\tau\), \(k_i\), and growth rates.
+- Acknowledgment of ambiguous files or well layouts, with a conservative strategy for confirming condition assignments before fitting.
+
+## What to Push Back On
+- Using logistic growth or Gompertz growth in place of the Monod/sequential-substrate model without a strong justification.
+- Ignoring blank subtraction, ignoring uninfected controls, or using arbitrary manual lysis thresholds other than the specified rules.
+- Fitting each MOI condition independently and then averaging parameters.
+- Changing multiple infection parameters with growth rate in the same core model fit; the intended comparison is null vs one-parameter-dependent variants.
+- Omitting the extracted-phage validation stage or reporting only OD fits.
+- Using unavailable Bayesian/MCMC tooling or any package outside the allowed runtime.
+- Treating \(P(t)\) alone as the measured phage observable when the assay counts both free phages and mature intracellular phages.
+- Skipping the \(q_1\le q_2\) constraint or skipping the \(\text{MOI}^*\) scan in the lysogeny model.
+- Fitting lysogeny curves in linear space; the objective should be in log space because MOI and lysogeny frequency span orders of magnitude.
+- Forcing the stationary-growth data into the same high-MOI behavior as growing cells without allowing repression or \(\text{MOI}^*=1\)-like behavior.
+- Reporting only point estimates with no uncertainty band, bootstrap CI, or refit ensemble.
+- Over-interpreting absolute parameter values if the OD-to-cell conversion surrogate for LB-based media had to be simplified.
+
+## Domain Interests
+- The calibration stage should show a clean monotonic relationship between lysis OD and \(\log_{10}\) phage input within each matched host/phage/medium condition.
+- The mechanistic infection model should capture not just lysis timing but the shape of the pre-lysis rise and collapse across MOIs.
+- Different growth-rate-dependent model variants should yield similar predictions for the composite quantity \(R\), even if \(r\), \(B\), and \(\tau\) are individually sloppy.
+- The phage-validation stage is especially convincing if the fitted OD model predicts phage trajectories without refitting to the phage data.
+- Lysogeny inference is more convincing when uninfected kanamycin controls remain flat and selected infected wells show a clear exponential regrowth window.
+- The single-cell lysogenization fit should respect Poisson encounter statistics and should not require implausible infection-efficiency corrections.
+- Across growth states, look for systematic shifts in \(q_1\), \(q_2/q_1\), and any high-MOI repression term rather than only changes in the bulk lysogeny curve.
+- For spontaneous induction, the key quality signal is whether a simple growth-rate-dependent \(k_i(\phi)\) can reconcile both OD dynamics and released-phage dynamics.
+
+## Implementation Specifications
+1. **Goal 1: Parse and structure local datasets**
+   - **Parameters**:
+     - Time unit conversion: convert TECAN `Time [s]` to minutes for ODE fitting.
+     - File priority: `TECAN_*.csv` and `.mat` first; `.xlsx` only if readable through pandas without extra installs.
+   - **Thresholds**:
+     - Blank wells: OD should remain near baseline with no lysis peak; use these for time-point-wise subtraction.
+   - **Implementation constraints**:
+     - Read TECAN CSVs by row label, not by assuming the first data row is a well.
+     - Keep replicate wells separate until the stage where mean/SEM are explicitly needed.
+     - Read `spontaneous_induction_phage.csv` with `header=None`; rename columns after inspecting their role.
+     - Use `scipy.io.loadmat` for `d20230216_ODbasedMOIresponsesurface_run1_24-Feb-2023.mat` and `...run2...mat`.
+     - If exact well-to-condition maps are ambiguous, infer them from the dilution-series design and monotonic lysis ordering, then verify by replicate consistency before fitting.
+
+2. **Goal 2: Build OD-based phage calibration curves**
+   - **Equations**:
+     - Complex media:
+       \[
+       y = kx + b
+       \]
+       where \(y\) is lysis OD and \(x=\log_{10}(C_0)\), with \(C_0\) in PFU mL\(^{-1}\).
+     - Minimal media:
+       \[
+       \log_{10} y = kx + b
+       \]
+     - Unknown concentration from complex-media fit:
+       \[
+       \hat{x} = \frac{y-b}{k}, \qquad \hat{C}_0 = 10^{\hat{x}}
+       \]
+     - Unknown concentration from minimal-media fit:
+       \[
+       \hat{x} = \frac{\log_{10} y - b}{k}, \qquad \hat{C}_0 = 10^{\hat{x}}
+       \]
+     - Fold-change accuracy metric:
+       \[
+       \text{Fold change}=\frac{C_{\text{OD-based}}}{C_{\text{plaque-based}}}
+       \]
+     - Precision metric:
+       \[
+       CV=\frac{\text{SD across replicate OD-based counts}}{\text{mean across replicate OD-based counts}}
+       \]
+   - **Parameters**:
+     - \(k,b\): calibration slope and intercept, fitted separately for each host/phage/medium condition.
+     - Lysis OD: first post-infection local maximum of the blank-subtracted OD trace.
+   - **Thresholds**:
+     - Peak must be followed by an OD decline; if multiple early peaks exist, use the earliest peak that precedes the main lysis drop.
+   - **Implementation constraints**:
+     - Fit calibration curves only within a matched experimental condition; do not mix media, phages, or temperatures.
+     - If using the interpolation-based refinement, interpolate only between the adjacent calibration points that bracket the sample’s lysis OD.
+     - Plot raw growth curves, lysis OD vs \(\log_{10}\) input concentration, parity vs plaque counts, fold change, and CV.
+
+3. **Goal 3: Reproduce the single-phage sensitivity analysis**
+   - **Equations**:
+     - Poisson occupancy of phages per 10 \(\mu\)L aliquot:
+       \[
+       P(X=x)=\frac{\lambda^x e^{-\lambda}}{x!}
+       \]
+     - Probability of a nonzero phage count:
+       \[
+       \pi_0=P(X>0)=1-e^{-\lambda}
+       \]
+     - Number of wells with at least one phage among \(N\) wells:
+       \[
+       P(Y=y)=\binom{N}{y}\pi_0^y(1-\pi_0)^{N-y}
+       \]
+     - Lysis amplitude:
+       \[
+       \Delta OD = OD_{\text{first local max}} - OD_{\text{subsequent min}}
+       \]
+   - **Parameters**:
+     - \(\lambda=0.38\) PFU per well.
+     - \(N=32\) infected wells.
+     - Uninfected controls: 10 wells.
+   - **Thresholds**:
+     - Classify a well as lysed if \(\Delta OD \ge 0.3\).
+   - **Implementation constraints**:
+     - Use an exact two-sided binomial test via `scipy.stats.binomtest(k, N, \pi_0, alternative="two-sided")`.
+     - Report the expected lysis fraction, observed lysis fraction, and a plot of \(\Delta OD\) values with the 0.3 threshold marked.
+
+4. **Goal 4: Parameterize host growth and OD-to-cell conversion**
+   - **Equations**:
+     - Monod growth:
+       \[
+       g(N)=v\frac{N}{N+K}
+       \]
+     - Sequential-substrate growth, phase \(i\) active when \(\theta_i \le N < \theta_{i-1}\):
+       \[
+       \frac{dN}{dt}=-e\,U\,v_i\frac{N}{N+K_i}, \qquad
+       \frac{dU}{dt}=U\,v_i\frac{N}{N+K_i}
+       \]
+     - Uninfected-culture fitting loss:
+       \[
+       \mathcal{L}_{\text{growth}}=
+       \sum_{t\in T_0}\left[OD(t)-\hat U(t)\,\varepsilon(t)\right]^2
+       \]
+   - **Parameters**:
+     - \(X\): number of growth phases, scan \(X\in\{1,2,3\}\).
+     - \(v_i\): maximal growth rate in phase \(i\), bounds \(0.001\) to \(0.08\) min\(^{-1}\).
+     - \(K_i\): Monod constant in phase \(i\), bounds \(10^{-6}\) to \(1\) in normalized nutrient units.
+     - \(\theta_i\): phase thresholds with \(1=\theta_0>\theta_1>\cdots>\theta_X=0\).
+     - \(e\): nutrient-to-growth conversion factor, positive.
+     - \(\varepsilon\): OD-per-cell absorptivity.
+   - **Thresholds**:
+     - For minimal media, fix \(X=1\) and \(\varepsilon_0=10^{-9}\) OD·mL·CFU\(^{-1}\).
+     - For LB-based media, adopt \(X=3\) if the scan shows a clear improvement over \(X=1,2\).
+   - **Implementation constraints**:
+     - Initial conditions: \(N(0)=1\), \(U(0)=OD(0)/\varepsilon(0)\).
+     - For LB-based media, use a positive polynomial surrogate \(\varepsilon(N)\) if a direct OD-to-CFU calibration dataset is not locally available. A cubic polynomial is sufficient:
+       \[
+       \varepsilon(N)=c_0+c_1N+c_2N^2+c_3N^3
+       \]
+       with positivity enforced over \(N\in[0,1]\).
+     - Fit growth parameters with `dual_annealing`, then refine with `L-BFGS-B`.
+     - If using the surrogate \(\varepsilon(N)\), state clearly that this affects absolute \(r\) estimates more than relative trends.
+
+5. **Goal 5: Fit the infection ODE model across MOIs**
+   - **Equations**:
+     - Core infection model:
+       \[
+       \frac{dN}{dt}= -e\left(U+\sum_{i=1}^{M}I_i\right)g(N)
+       \]
+       \[
+       \frac{dU}{dt}=Ug(N)-rUP
+       \]
+       \[
+       \frac{dI_1}{dt}=rUP-\frac{M}{\tau}I_1
+       \]
+       \[
+       \frac{dI_i}{dt}=\frac{M}{\tau}(I_{i-1}-I_i), \quad i=2,\dots,M
+       \]
+       \[
+       \frac{dP}{dt}=B\frac{M}{\tau}I_M-r\left(U+\sum_{i=1}^{M}I_i\right)P
+       \]
+     - Host-growth normalization:
+       \[
+       \phi(t)=\frac{g(N(t))}{\max g(N)}
+       \]
+     - Model variants:
+       - Null: \(r,B,\tau\) constant.
+       - \(r\)-model:
+         \[
+         r(\phi)=\max(0, r_k\phi+r_0)
+         \]
+       - \(B\)-model:
+         \[
+         B(\phi)=\max(0, B_k\phi+B_0)
+         \]
+       - \(\tau\)-model:
+         \[
+         \tau(\phi)=\max(20, \tau_k\phi+\tau_0)
+         \]
+     - Joint normalized OD loss:
+       \[
+       \mathcal{L}_{\text{OD}}=
+       \sum_{j=1}^{J}\sum_{t\in T_{o,j}}
+       \frac{1}{|T_{o,j}|}
+       \left[
+       \frac{\left(\hat U_j(t)+\sum_{i=1}^{M}\hat I_{i,j}(t)\right)\varepsilon(\hat N_j(t))-OD_j(t)}
+       {\max_t OD_j(t)-\min_t OD_j(t)}
+       \right]^2
+       \]
+   - **Parameters**:
+     - \(M=5\), fixed.
+     - \(r\): adsorption/encounter rate, search in \([10^{-12},10^{-7}]\) mL min\(^{-1}\).
+     - \(B\): burst size, search in \([1,1000]\).
+     - \(\tau\): latent period, search in \([10,200]\) min.
+     - \(r_k,r_0\): choose bounds so \(r(\phi)\) stays within \([10^{-12},10^{-7}]\) over \(\phi\in[0,1]\).
+     - \(B_k,B_0\): choose bounds so \(B(\phi)\) stays within \([1,1000]\).
+     - \(\tau_k,\tau_0\): choose bounds so \(\tau(\phi)\) stays within \([20,200]\).
+   - **Thresholds**:
+     - For the LBM lambda fits, use only time points with centered-finite-difference \(d^2OD/dt^2 > 3.5\times 10^{-5}\) OD min\(^{-2}\) to reduce the fitting burden.
+   - **Implementation constraints**:
+     - Initial conditions per MOI condition \(j\):
+       \[
+       N_j(0)=1,\quad U_j(0)=\frac{OD_j(0)}{\varepsilon(N_j(0))},\quad I_{i,j}(0)=0,\quad P_j(0)=C_{0,j}
+       \]
+       where \(C_{0,j}\) is the initial phage concentration in the infected culture after phage addition.
+     - Use the same fitted host-growth parameters for all MOI conditions within a medium.
+     - Optimize each variant with `dual_annealing`, then `L-BFGS-B`.
+     - Replace posterior sampling with a 200-member ensemble created by bootstrap refitting:
+       - If raw replicate wells are available: resample wells within each condition with replacement.
+       - If only mean \(\pm\) SEM are available: simulate pseudo-data as \(y^*(t)=\bar y(t)+\mathcal N(0,\text{SEM}(t))\).
+     - Retain one best fit plus the 200 refits for uncertainty bands and downstream predictions.
+
+6. **Goal 6: Predict phage dynamics and compute \(R\)**
+   - **Equations**:
+     - Observable phage concentration for extraction assays:
+       \[
+       P_{\text{all}}(t)=P(t)+B\,I_M(t)
+       \]
+     - Composite viral growth parameter:
+       \[
+       R=\frac{rB}{\exp(\tau g^*)}
+       \]
+     - Plane relation used to estimate \(g^*\):
+       \[
+       \tau = \alpha\left(\log_{10} r + \log_{10} B\right)+\beta
+       \]
+       then
+       \[
+       g^*=\frac{\ln 10}{\alpha}
+       \]
+     - Simplified delayed-growth interpretation:
+       \[
+       \frac{dP(t)}{dt}=R\,U(t)\,P(t-\tau)
+       \]
+   - **Parameters**:
+     - \(g^*\): characteristic host growth rate inferred from the plane fit.
+     - \(R\): derived for each accepted parameter set and, in LBM, evaluated as a function of \(\phi\).
+   - **Implementation constraints**:
+     - Fit the plane in \((\log_{10}r,\log_{10}B,\tau)\) space using least squares on the accepted parameter ensemble from minimal-media fits.
+     - Compare coefficient of variation of \(R\) to the CVs of \(r\), \(B\), and \(\tau\).
+     - Use the same best-fit/ensemble parameters from Goal 5; do not refit to phage-extraction data.
+     - For `phage_extraction_230119/df_1e*.csv`, use `tdata` as time, `ydata` as measured phage signal, and `yerr` for uncertainty after confirming how suffixes map to initial conditions.
+
+7. **Goal 7: Quantify lysogens and fit the single-cell lysogenization model**
+   - **Equations**:
+     - Exponential back-extrapolation:
+       \[
+       N(t)=N_0 e^{gt}
+       \]
+     - Lysogeny frequency:
+       \[
+       f_{\text{lysogeny}}=\frac{L_0}{T_0}
+       \]
+     - Poisson single-cell MOI distribution:
+       \[
+       P_n=\frac{(aM)^n e^{-aM}}{n!}
+       \]
+     - Single-cell lysogenization probabilities:
+       \[
+       Q_n=
+       \begin{cases}
+       0 & n=0\\
+       q_1 & n=1\\
+       q_2 & n=2\\
+       \cdots\\
+       q_{\text{MOI}^*} & n\ge \text{MOI}^*
+       \end{cases}
+       \]
+     - Bulk lysogeny prediction:
+       \[
+       f_{\text{lysogeny}}=\sum_{n=0}^{\infty} P_n Q_n
+       \]
+     - For \(\text{MOI}^*=2\):
+       \[
+       f_{\text{lysogeny}}=P_1 q_1 + (1-P_0-P_1)q_2
+       \]
+     - High-MOI repression:
+       \[
+       R_n=
+       \begin{cases}
+       1 & 0\le n < \text{MOI}^*\\
+       e^{-k(n-\text{MOI}^*)} & n\ge \text{MOI}^*
+       \end{cases}
+       \]
+       and then
+       \[
+       f_{\text{lysogeny}}=\sum_{n=0}^{\infty} P_n Q_n R_n
+       \]
+     - Log-space fitting loss:
+       \[
+       \mathcal{L}_{\text{lys}}=\sum_M \left[\log f_{\text{lysogeny}}(M)-\log \hat f_{\text{lysogeny}}(M)\right]^2
+       \]
+   - **Parameters**:
+     - \(a>0\): infection-efficiency / scaling factor applied to the measured average MOI.
+     - \(q_1,q_2 \in [0,1]\), with \(q_1\le q_2\).
+     - \(k\ge 0\): high-MOI repression rate.
+     - \(\text{MOI}^*\in\{1,2,3\}\): scan discrete values.
+   - **Thresholds**:
+     - Fit the growth window only where \(0.02 \le OD \le 0.1\).
+   - **Implementation constraints**:
+     - Define \(t=0\) as the dilution into the detection plate.
+     - For the fixed-growth assay, extrapolate selected growth curves back to the dilution time even though kanamycin is added after a short outgrowth.
+     - Compute \(L_0\) from infected, selected wells and \(T_0\) from uninfected, unselected controls.
+     - Truncate the infinite Poisson sum at \(n_{\max}=50\) or when the remaining tail mass is < \(10^{-8}\).
+     - Use bootstrap over replicate wells and independent runs to obtain uncertainty on \(a,q_1,q_2,k\).
+
+8. **Goal 8: Extend lysogeny inference across growth rates and build the fate surface**
+   - **Equations**:
+     - Preinfection growth-rate fit:
+       \[
+       N(t)=N_0 e^{gt}
+       \]
+       fitted on the 30-minute preinfection segment in log space.
+     - Phenomenological parameterizations:
+       \[
+       \log a = \beta_2 g^2 + \beta_1 g + \beta_0
+       \]
+       \[
+       \log q_1 = \beta_1 g + \beta_0
+       \]
+       \[
+       \log q_2 =
+       \begin{cases}
+       \beta_1 g + \beta_0 & g<g^*\\
+       \beta_2 g + (\beta_1-\beta_2)g^* + \beta_0 & g\ge g^*
+       \end{cases}
+       \]
+       \[
+       k=
+       \begin{cases}
+       0 & g<g_1\\
+       -(g-g_1)(g-g_2) & g_1\le g<g_2\\
+       0 & g\ge g_2
+       \end{cases}
+       \]
+   - **Parameters**:
+     - Growth rate \(g\) for this stage should be expressed in h\(^{-1}\); convert from min\(^{-1}\) if needed.
+     - \(\beta\) coefficients, \(g^*, g_1, g_2\): fitted phenomenological parameters.
+   - **Thresholds**:
+     - Scan the fate surface over \(10^{-3}\le M \le 10^2\) and \(0\le g \le 1.25\) h\(^{-1}\).
+   - **Implementation constraints**:
+     - Fit each sampled growth state separately first using Goal 7, then fit the growth-rate trends.
+     - If a stationary-state fit prefers \(\text{MOI}^*=1\), set \(q_2=q_1\) when creating a continuous surface.
+     - For the experimental heat map, interpolate on \((\log_{10} M, g)\) using `scipy.interpolate.griddata(method="linear")`, then smooth with `scipy.ndimage.median_filter(size=3)`.
+     - Plot \(q_1(g)\), \(q_2(g)/q_1(g)\), and the predicted \(f_{\text{lysogeny}}(M,g)\) surface.
+
+9. **Goal 9: Model spontaneous induction**
+   - **Equations**:
+     - Growth-rate-dependent induction rate:
+       \[
+       k_i(\phi)=\max(0, k_{ik}\phi + k_{ib})
+       \]
+     - Lysogen/induction dynamics:
+       \[
+       \frac{dN}{dt}= -e\left(L+\sum_{i=1}^{M}I_i\right)g(N)
+       \]
+       \[
+       \frac{dL}{dt}=Lg(N)-k_iL
+       \]
+       \[
+       \frac{dI_1}{dt}=k_iL-\frac{M}{\tau}I_1
+       \]
+       \[
+       \frac{dI_i}{dt}=\frac{M}{\tau}(I_{i-1}-I_i),\quad i=2,\dots,M
+       \]
+       \[
+       \frac{dP}{dt}=B\frac{M}{\tau}I_M-0.1\,r\left(L+\sum_{i=1}^{M}I_i\right)P
+       \]
+     - Joint OD-plus-phage loss:
+       \[
+       \mathcal{L}_{\text{ind}}=
+       \frac{1}{|T_O|}\sum_{t\in T_O}
+       \left[
+       \frac{\left(\hat L(t)+\sum_{i=1}^{M}\hat I_i(t)\right)\varepsilon(\hat N(t))-OD(t)}
+       {\max OD - \min OD}
+       \right]^2
+       +
+       \frac{1}{|T_P|}\sum_{t\in T_P}
+       \left[
+       \frac{\log\left(\hat P(t)+B\hat I_M(t)\right)-\log P(t)}
+       {\max \log P - \min \log P}
+       \right]^2
+       \]
+   - **Parameters**:
+     - \(M=5\), fixed.
+     - \(k_{ik}\): slope of induction-rate dependence, search in \([0,10^{-4}]\) min\(^{-1}\).
+     - \(k_{ib}\): intercept, search in \([-10^{-4},10^{-4}]\) min\(^{-1}\), with clipping at 0 through the `max` operator.
+     - \(r,B,\tau\): import from the corresponding infection-model fit.
+   - **Thresholds**:
+     - Adsorption term is scaled by 0.1 relative to maltose-like adsorption because glucose lowers adsorption approximately tenfold.
+   - **Implementation constraints**:
+     - Parameterize host growth in LBGM exactly as in Goal 4 with \(X=3\).
+     - Use the adsorption-capable \(r\)-model as the main fit; run a no-adsorption sensitivity analysis if time permits.
+     - If the phage-measurement file lacks explicit sample times, map the eight extracted-phage measurements to the times when the OD trajectory crosses the target blank-subtracted OD values used for sampling: inoculation, 0.01, 0.02, 0.04, 0.25, 0.30, 0.50, and 1.00.
+     - Use the same bootstrap/refit strategy as in Goal 5 for uncertainty bands on \(k_i(\phi)\).
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything yourself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+- When ALL research goals from this brief have been addressed (even if some results are imperfect), include the marker [FINISH] at the END of your response. This signals the system to end the run. Do NOT include [FINISH] if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+max_turns = 80

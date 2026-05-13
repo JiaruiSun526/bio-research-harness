@@ -1,0 +1,1 @@
+{"task_id":"task_001","status":"success","summary":"DE analysis complete. Found 7 genes at FDR < 0.01. Candidates flagged: TP53 (log2FC=1.87) and BRCA1 (log2FC=1.28). Top gene by fold change: TP53. All 7 genes are immune-related.","artifact_paths":["stages/stage_01/outputs/tcell_de_results.csv"],"blockers":[],"suggestions":[],"error":null}

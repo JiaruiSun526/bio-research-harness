@@ -1,0 +1,336 @@
+name = "insilico_immunotherapy"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/insilico_immunotherapy/data/ipi_placebo_digitized.csv",
+    "papers/insilico_immunotherapy/data/lung_cancer_untreated.csv",
+    "papers/insilico_immunotherapy/data/nivo_dacarb_digitized.csv",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "Digitized survival curve points for ipi-labelled arm"
+path = "data/ipi_placebo_digitized.csv"
+description = '''Semicolon-delimited CSV of digitized survival-curve coordinates using comma decimal separators. Rows are ordered curve points with columns for time, survival probability, a numeric status flag, and a drug label; in the sample the drug label is always "ipi" and the status value is always 1, so the exact meaning of the status coding is not identifiable from this file alone. Use this file to plot or reconstruct the ipi-labelled arm from the comparison implied by the filename; load with sep=';' and decimal=','.'''
+
+[[data.catalog]]
+name = "Untreated lung cancer survival coordinates"
+path = "data/lung_cancer_untreated.csv"
+description = '''Two-column numeric CSV containing 18 ordered x-y pairs and no reliable text header; the first line ("2.040, 0.9991") appears to be the first observation rather than column names. Rows are coordinate pairs, with the first column increasing and the second decreasing from about 1 toward 0, consistent with digitized time versus survival-probability points for an untreated lung cancer curve. Read with header=None and assign your own column names before plotting, curve fitting, or survival reconstruction.'''
+
+[[data.catalog]]
+name = "Digitized survival curve points for dacarbazine-labelled arm"
+path = "data/nivo_dacarb_digitized.csv"
+description = '''Semicolon-delimited CSV of digitized survival-curve coordinates using comma decimal separators. Rows are ordered curve points with columns for time, numeric status flag, survival probability, and drug label; in the sample all rows are labelled "dacarbazine" and status is always 1, even though the filename suggests a nivo-versus-dacarbazine comparison. Use this file to plot or reconstruct the dacarbazine-labelled arm; load with sep=';' and decimal=','.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: insilico_immunotherapy
+
+## Background
+We will use mechanistic ordinary differential equation models of tumor–immune dynamics to simulate virtual late-stage cancer trials and test how therapy-specific survival patterns affect trial design choices. The observed targets are the NCCTG lung cancer survival cohort from `survival::lung` and two melanoma immunotherapy trials reconstructed from published Kaplan–Meier curves; local files `ipi_placebo_digitized.csv` and `nivo_dacarb_digitized.csv` contain the digitized melanoma curves, and `lung_cancer_untreated.csv` can be used as a pre-extracted untreated survival curve if needed. The central question is how model-based survival kinetics should drive choices about effect metric, endpoint timing, randomization ratio, and interim analyses.
+
+## Research Goals
+1. Assemble the observed survival targets for the untreated lung cohort and the two melanoma trials, and generate Kaplan–Meier reference curves for each arm.
+2. Implement the three tumor–immune ODE models and the virtual-patient simulator, including patient heterogeneity, diagnosis/death thresholds, and treatment rules.
+3. Fit each model to the observed datasets using ABC-SMC, varying only the tumor growth-rate distribution and treatment-effect parameters while keeping all other parameters fixed.
+4. Use the fitted models to simulate representative phase III trial scenarios and estimate survival curves, smoothed hazards, and hazard ratios over time.
+5. Evaluate how the choice of effect-size metric changes trial power by comparing log-rank-based analyses with fixed-time overall survival analyses across sample sizes.
+6. Evaluate how endpoint timing and randomization ratio influence power in chemotherapy-like and immunotherapy-like scenarios.
+7. Evaluate interim-analysis schedules with O’Brien-Fleming correction under strong-effect, weak-effect, and no-effect treatment scenarios.
+
+## Methodological Preferences
+- Work in **R**, using the authors’ **C++/Rcpp-backed implementation** where available; prefer the repository’s **`TumorImmuneModels`** package rather than rewriting the simulator unless necessary.
+- Use `survival::Surv`, `survival::survfit`, and `survival::survdiff` for Kaplan–Meier estimation and log-rank tests.
+- Use `bshazard::bshazard` from **`bshazard` version 1.1** for hazard smoothing and 95% confidence intervals.
+- For published curves without raw IPD, use **WebPlotDigitizer 4.6** plus the R package **`IPDfromKM`** for reconstruction. Since digitized CSVs are already available locally, use them directly after validating separators, decimal marks, and arm labels.
+- For `ipi_placebo_digitized.csv` and `nivo_dacarb_digitized.csv`, expect **semicolon delimiters** and **comma decimal marks**; `utils::read.csv2()` is the intended parser. Do not trust filenames over the arm labels in the `drug` column.
+- Prefer the official NCCTG source `survival::lung`; use `lung_cancer_untreated.csv` only as a sanity-check target curve or pre-extracted reference if needed.
+- Fit **only**:
+  - mean of `log10(ρ)`
+  - SD of `log10(ρ)`
+  - chemotherapy effect size
+  - immunotherapy effect size  
+  Keep all other model parameters fixed at the values specified below.
+- Use **ABC-SMC** following Sisson et al. for parameter fitting; do not replace this with direct likelihood optimization, Cox fitting, or parametric survival regression.
+- Use as ABC distance the **root mean squared difference** between model-predicted and observed survival curves, evaluated **monthly** over the first **24 months after diagnosis**.
+- When generating the model-predicted survival curve for fitting, simulate the **same number of patients** as in the observed dataset being fit.
+- Simulate each patient from **one malignant cell** for up to **10 years**, with treatment starting when the tumor crosses the diagnosis threshold.
+- Draw diagnosis and lethal tumor thresholds from **log-normal distributions** with a **4σ span of one order of magnitude**, with the **upper 2σ point** fixed at `65 × 10^8` cells for diagnosis and `10^12` cells for death.
+- Use **rejection sampling** to discard spontaneous tumor clearance trajectories.
+- Do **not** simulate dropout or censoring in the main fitting/simulation figures beyond administrative censoring at the analysis endpoint.
+- Default treatment durations:
+  - **ICI:** 24 months
+  - **chemotherapy:** 6 months
+- Implement chemotherapy by reducing tumor growth rate `ρ`; implement ICI by altering immune-killing parameters as model-specific below.
+- For downstream scenario analyses, use the CA184-024-derived baseline growth-rate distribution and fitted treatment-effect settings; when reproducing the secondary CA184-024 fit, fix chemotherapy effect to **0.6** for M1/M2 and **0.75** for M3 before refitting the remaining parameters.
+- Power analyses:
+  - metric-choice curves: **250 simulated trials per point**
+  - endpoint/randomization curves: **400 simulated trials per point**
+  - interim-analysis study: **1000 simulated trials per scenario**
+- Use `stats::prop.test` for fixed-time OS comparisons and `stats::binom.test` for 95% CIs on estimated power.
+- Treat the primary fixed-time endpoint as **2-year overall survival** unless a specific alternative OS timepoint is being evaluated.
+- Trial duration equals follow-up length because accrual is not simulated.
+- Plot types to reproduce:
+  - Kaplan–Meier curves with risk tables
+  - survival curves plus smoothed hazards and hazard-ratio-over-time panels
+  - power curves with binomial 95% CIs
+  - interim-analysis flow/alluvial-style outcome summaries
+
+## What to Approve
+- The plan uses **R** and the authors’ **TumorImmuneModels/Rcpp** workflow or a faithful equation-level reimplementation.
+- The plan uses the **three specified ODE models**, not a generic tumor-growth or survival model.
+- The plan fits patient heterogeneity through a **log-normal distribution of `ρ`** and uses **ABC-SMC with monthly 24-month RMSD on KM curves**.
+- The plan keeps the fixed model parameters unchanged and varies only the intended fitted parameters.
+- The plan treats the digitized melanoma files as **digitized curve inputs** and parses their locale-specific formatting correctly.
+- The plan validates the ambiguous parts of the implementation against the repository code, especially the **M2 immunotherapy mechanism** and the exact encoding of **“no effect”** in the interim-analysis scenarios.
+- The plan uses `bshazard::bshazard` for hazard estimation and `survival::survdiff` / `stats::prop.test` for the corresponding trial analyses.
+- The plan uses chemotherapy effect multipliers in a **reasonable reduction range `(0,1)`** and positive log-normal draws for `ρ`.
+- The plan keeps the **6-month chemotherapy** and **24-month ICI** defaults unless the scenario explicitly changes them.
+
+## What to Push Back On
+- Replacing the mechanistic simulator with Cox models, Weibull models, piecewise exponential survival fits, or any purely statistical survival generator.
+- Fitting extra biological parameters beyond the intended small parameter set just to improve curve matching.
+- Ignoring the 24-month fitting window and using the full published follow-up as the fitting target.
+- Adding accrual, dropout, or censoring mechanisms that were not part of the main analysis.
+- Using only one trial metric and skipping the comparison between log-rank-style and fixed-time OS analyses.
+- Skipping hazard estimation with `bshazard` in the scenario-analysis stage.
+- Performing interim analyses without O’Brien-Fleming multiplicity control.
+- Trusting local filenames without checking that arm assignments match the trial descriptions.
+- Failing to resolve the manuscript/repository inconsistencies around M2 ICI implementation or the “no effect” setting.
+- Reporting only p-values or power values without the corresponding survival-curve shapes and hazard behavior.
+
+## Domain Interests
+- The most convincing implementation is one where **delayed curve separation** and **late survival plateaus** emerge from the mechanistic models rather than being imposed statistically.
+- Cross-model agreement on the **qualitative survival-shape patterns** matters more than perfect numerical overlap.
+- Chemotherapy-like scenarios should look closer to proportional hazards only when the effect acts directly on tumor growth and persists; transient chemotherapy should produce only temporary separation.
+- Immunotherapy-like scenarios should show clear **non-proportional hazards**, often with delayed benefit and changing hazard ratios over time.
+- Complex regimens should be allowed to produce **crossing curves** or temporary benefits if the mechanism implies them.
+- For M3, oscillatory behavior after 24 months is acceptable as long as the first 2 years are handled consistently.
+- Reconstruction fidelity is important: the digitized/reconstructed targets should yield Kaplan–Meier curves and arm sizes consistent with the original trial setup.
+
+## Implementation Specifications
+1. **Assemble observed survival targets**
+   - **Data sources**:
+     - NCCTG lung cancer cohort: use `survival::lung` as the primary source.
+     - Melanoma trials: reconstruct from published Kaplan–Meier curves using WebPlotDigitizer 4.6 and `IPDfromKM`, or use the local digitized files directly if they already represent the extracted curves needed for fitting.
+   - **Local files**:
+     - `ipi_placebo_digitized.csv`: semicolon-delimited, comma decimals, `drug` column present; verify whether labels correspond to the CA184-024 arms.
+     - `nivo_dacarb_digitized.csv`: semicolon-delimited, comma decimals, `drug` column present; use to separate nivolumab and dacarbazine arms.
+     - `lung_cancer_untreated.csv`: two-column time/survival reference curve; if used, assign column names manually.
+   - **Implementation constraints**:
+     - Build Kaplan–Meier targets with `survival::survfit`.
+     - Use the actual arm sample sizes from the observed trial when generating model-predicted curves for fitting.
+     - Restrict fitting targets to the first **24 months after diagnosis** even if published follow-up is longer.
+
+2. **Implement the three ODE models and the virtual-patient generator**
+   - **Equations**:
+
+     **Model M1**
+     - `dT/dt = ρ T^(3/4) - ξ I T / (1 + I/hI + T/hT)`
+     - `dI/dt = mS S - δ I`
+     - `dS/dt = [T/(g + T)] (αN N + pS S) - mS S`
+     - `dN/dt = - [T/(g + T)] αN N`
+
+     **Model M2**
+     - `dT/dt = ρ T - ξ I T / (1 + T/hT)`
+     - `dI/dt = αe A - δ I`
+     - `dA/dt = αA [T/(g + T)] - δA A`
+
+     **Model M3**
+     - `dT/dt = ρ T (1 - T/β) - ξ I T`
+     - `dI/dt = αA + pI I [T/(g + T)] - δ I - ε I T`
+
+   - **Variables**:
+     - `T`: tumor cells
+     - `I`: intratumoral effector T cells
+     - `S`: activated T cells in lymph node compartment (M1)
+     - `N`: naive cytotoxic T cells (M1)
+     - `A`: antigen-presenting cells or influx-driving compartment (M2), and T-cell influx parameter context in M3
+   - **Fixed parameters**:
+
+     **M1**
+     - `δ = 0.019 day^-1`
+     - `ξ = 0.001 day^-1 cell^-1`
+     - `g = 1.0e7 cells`
+     - `hT = 571 cells`
+     - `hI = 571 cells`
+     - `mS = 1 day^-1`
+     - `pS = 1 day^-1`
+     - `αN = 0.0025 day^-1`
+
+     **M2**
+     - `δ = 0.178 day^-1`
+     - `ξ = 1.34e-6 day^-1 cell^-1`
+     - `g = 92330 cells`
+     - `hT = 60095000 cells`
+     - `αA = 2073.5 cells day^-1`
+     - `αe = 0.8318 day^-1`
+     - `δA = 0.231 day^-1`
+
+     **M3**
+     - `δ = 0.019 day^-1`
+     - `ξ = 1.0e-10 day^-1 cell^-1`
+     - `g = 1.0e7 cells`
+     - `αA = 2073.5 cells day^-1`
+     - `pI = 0.05 day^-1`
+     - `β = 1.1e12 cells`
+     - `ε = 1.0e-12 day^-1 cell^-1`
+
+   - **Fitted parameters**:
+     - `ρ`: tumor proliferation rate; vary between patients via a log-normal distribution.
+   - **Thresholds**:
+     - Diagnosis threshold `D`: log-normal, 4σ span = one order of magnitude, upper 2σ point at `65 × 10^8` cells.
+     - Death threshold `L`: log-normal, 4σ span = one order of magnitude, upper 2σ point at `10^12` cells.
+     - Equivalent log10 parameterization:
+       - `log10(D) ~ Normal(log10(65 × 10^8) - 0.5, 0.25^2)`
+       - `log10(L) ~ Normal(12 - 0.5, 0.25^2)`
+   - **Treatment rules**:
+     - Start treatment when `T` first exceeds `D`.
+     - Chemotherapy: reduce `ρ` multiplicatively for **6 months**.
+     - ICI: apply for **24 months**.
+     - Combination therapy: apply both rules simultaneously from diagnosis.
+     - Induction chemotherapy followed by immunotherapy: chemotherapy first, then switch to ICI.
+   - **Implementation constraints**:
+     - Simulate from a single malignant cell for up to **10 years**.
+     - Reject spontaneous-clearance trajectories.
+     - Use the repository/package initial conditions exactly; do not invent new compartment seeding if the package is available.
+
+3. **Fit the model parameters with ABC-SMC**
+   - **Parameters to fit**:
+     - `μρ = mean(log10 ρ)`
+     - `σρ = sd(log10 ρ)`
+     - chemotherapy effect size
+     - immunotherapy effect size
+   - **Dataset-specific fitting**:
+     - Untreated lung cohort: fit baseline growth-rate distribution only to the untreated curve.
+     - Two-arm melanoma trials: fit shared baseline growth-rate distribution plus treatment-effect parameters jointly across arms.
+   - **Distance function**:
+     - `RMSD = sqrt((1/K) Σ_{m=1}^K [S_model(m) - S_data(m)]^2 )`
+     - `K = 24` monthly evaluation points over months `1, 2, ..., 24` after diagnosis.
+   - **Observed curve**:
+     - `S_data(m)` is the Kaplan–Meier estimate at month `m`.
+   - **Model curve**:
+     - `S_model(m)` is the Kaplan–Meier estimate from simulated patients, using the same arm sizes as the observed dataset.
+   - **Special constraint for downstream CA184-024-based scenarios**:
+     - Perform a second CA184-024 fit with chemotherapy effect fixed to:
+       - `0.6` for M1
+       - `0.6` for M2
+       - `0.75` for M3
+     - Then refit the remaining parameters and use the mode of the joint posterior obtained by kernel density smoothing.
+   - **Implementation constraints**:
+     - Do not increase the number of fitted biological parameters.
+     - Use the repository ABC-SMC implementation if available; otherwise implement custom ABC-SMC in R, but keep the same distance and fitted parameterization.
+     - The manuscript text is internally inconsistent about the exact parameter count for the untreated cohort; match the repository implementation rather than improvising.
+
+4. **Simulate representative trial scenarios and estimate survival, hazard, and hazard ratio**
+   - **Trial structure**:
+     - Standard phase III two-arm randomized design.
+     - Default randomization: `1:1`.
+     - Default size for the scenario-illustration figure: `n = 600` simulated patients per arm.
+   - **Baseline distribution**:
+     - Use the CA184-024-derived fitted baseline growth-rate distribution unless a scenario explicitly uses another fitted dataset.
+   - **Scenarios to reproduce**:
+     - Chemotherapy vs placebo with finite chemotherapy duration.
+     - Chemoimmunotherapy vs chemotherapy.
+     - Immunotherapy vs chemotherapy.
+     - Induction chemotherapy followed by immunotherapy vs immunotherapy.
+   - **Hazard estimation**:
+     - Estimate arm-specific hazards with `bshazard::bshazard`.
+     - Compute time-varying hazard ratio as `HR(t) = h_treat(t) / h_control(t)`.
+   - **Implementation constraints**:
+     - For the chemotherapy-vs-placebo demonstration, use the **6-month chemotherapy effect** to show transient benefit.
+     - Use all three models for the chemotherapy-vs-placebo comparison.
+     - Use M1 for the more complex regimen comparisons shown in the main scenario figure.
+     - Report survival curves, smoothed hazards with 95% CIs, and `HR(t)`.
+
+5. **Compare power under different effect-size metrics**
+   - **Analysis methods**:
+     - Hazard-ratio-based analysis: use `survival::survdiff` (log-rank test), two-sided `α = 0.05`.
+     - Fixed-time survival analysis: use `stats::prop.test` on alive/dead counts at the chosen OS timepoint, two-sided `α = 0.05`.
+   - **Power definition**:
+     - `power = (# positive simulated trials) / (# simulated trials)`
+   - **Confidence intervals**:
+     - Use `stats::binom.test` to compute 95% CIs for the estimated power at each grid point.
+   - **Replication count**:
+     - `250` simulated trials per point.
+   - **Scenarios**:
+     - Transient chemotherapy vs placebo using M1.
+     - Chemoimmunotherapy vs chemotherapy using M2.
+     - Chemotherapy vs placebo using M3, but set chemotherapy effect to a **20% reduction in growth rate** for this figure to create a subtler effect.
+   - **Implementation constraints**:
+     - Fixed-time endpoint for this comparison is **2-year OS**.
+     - Use the same fitted baseline parameter set within each model across the sample-size grid.
+
+6. **Assess endpoint timing and randomization ratio**
+   - **Model**:
+     - Use **M1** only.
+   - **Endpoint-timing analysis**:
+     - For a chemotherapy-like scenario, use the **log-rank test** as the analysis metric while varying the analysis time.
+     - For an immunotherapy-like scenario, use **OS at the end of trial** via `stats::prop.test` while varying the OS timepoint.
+   - **Time grid**:
+     - Evaluate trial duration / analysis time over the 24-month follow-up; use the repository’s exact month grid if figure-level matching is required.
+   - **Randomization-ratio analysis**:
+     - Evaluate at least the ratios `1:1`, `3:2`, `2:1`, and `3:1`.
+   - **Replication count**:
+     - `400` simulated trials per point.
+   - **Fixed study sizes for randomization-ratio panels**:
+     - Chemotherapy-like example: total study size `300`.
+     - Immunotherapy-like example: total study size `1200`.
+   - **Implementation constraints**:
+     - Do not change the underlying treatment durations.
+     - Endpoint timing should be interpreted as administrative analysis time because accrual is absent.
+
+7. **Evaluate interim-analysis schedules**
+   - **Model**:
+     - Use **M1** only.
+   - **Trial structure**:
+     - Total `N = 1200`
+     - Randomization `1:1`
+   - **Analysis method**:
+     - Use `stats::prop.test` (Pearson chi-squared proportions test) at each analysis look.
+   - **Multiplicity correction**:
+     - Apply an **O’Brien-Fleming** group-sequential correction to maintain overall type I error.
+   - **Schedules**:
+     - No interim: final at `24` months
+     - One interim: `12`, `24`
+     - Two interims: `8`, `16`, `24`
+     - Three interims: `6`, `12`, `18`, `24`
+   - **Scenarios**:
+     - Strong treatment effect
+     - Weak treatment effect
+     - No treatment effect
+   - **Treatment-effect settings**:
+     - The manuscript labels these as strong `= 12`, weak `= 4`, and no effect `= 0`, but the text elsewhere describes ICI as a fold increase and is inconsistent. Match the repository implementation exactly before running this stage.
+   - **Outcome classification**:
+     - Positive: significant result favoring treatment
+     - Harmful: significant result favoring control
+     - Negative: non-significant final outcome
+     - Inconclusive: not stopped at an earlier interim
+   - **Replication count**:
+     - `1000` simulated trials per scenario
+   - **Implementation constraints**:
+     - Use equally spaced looks over the 24-month period.
+     - Include the no-effect scenario as a type I error calibration check.
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything yourself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+- When ALL research goals from this brief have been addressed (even if some results are imperfect), include the marker [FINISH] at the END of your response. This signals the system to end the run. Do NOT include [FINISH] if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+max_turns = 200

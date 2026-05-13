@@ -1,0 +1,418 @@
+name = "conn2res"
+
+# -- Data sources: copied into workspace/data/ at startup --
+
+[data]
+sources = [
+    "papers/conn2res_neuro/data/drosophila/conn.csv",
+    "papers/conn2res_neuro/data/drosophila/coords.csv",
+    "papers/conn2res_neuro/data/drosophila/labels.csv",
+    "papers/conn2res_neuro/data/drosophila/labels_description.csv",
+    "papers/conn2res_neuro/data/drosophila/networks.csv",
+    "papers/conn2res_neuro/data/drosophila/ref.txt",
+    "papers/conn2res_neuro/data/human/README.txt.txt",
+    "papers/conn2res_neuro/data/human/connectivity.npy",
+    "papers/conn2res_neuro/data/human/consensus_0.npy",
+    "papers/conn2res_neuro/data/human/consensus_1.npy",
+    "papers/conn2res_neuro/data/human/consensus_2.npy",
+    "papers/conn2res_neuro/data/human/consensus_3.npy",
+    "papers/conn2res_neuro/data/human/consensus_4.npy",
+    "papers/conn2res_neuro/data/human/consensus_5.npy",
+    "papers/conn2res_neuro/data/human/coords.npy",
+    "papers/conn2res_neuro/data/human/cortical.npy",
+    "papers/conn2res_neuro/data/human/hemiid.npy",
+    "papers/conn2res_neuro/data/human/rsn_mapping.npy",
+    "papers/conn2res_neuro/data/macaque_modha/conn.csv",
+    "papers/conn2res_neuro/data/macaque_modha/coords.csv",
+    "papers/conn2res_neuro/data/macaque_modha/dist.csv",
+    "papers/conn2res_neuro/data/macaque_modha/labels.csv",
+    "papers/conn2res_neuro/data/macaque_modha/labels_description.csv",
+    "papers/conn2res_neuro/data/macaque_modha/ref.txt",
+    "papers/conn2res_neuro/data/mouse/acronyms.csv",
+    "papers/conn2res_neuro/data/mouse/conn.csv",
+    "papers/conn2res_neuro/data/mouse/coords.csv",
+    "papers/conn2res_neuro/data/mouse/dist.csv",
+    "papers/conn2res_neuro/data/mouse/labels.csv",
+    "papers/conn2res_neuro/data/mouse/ref.txt",
+    "papers/conn2res_neuro/data/rat/conn.csv",
+    "papers/conn2res_neuro/data/rat/labels.csv",
+    "papers/conn2res_neuro/data/rat/labels_description.csv",
+    "papers/conn2res_neuro/data/rat/ref.txt",
+]
+
+# -- Data catalog: describes datasets for the main agent --
+
+[[data.catalog]]
+name = "Drosophila connectivity matrix"
+path = "data/drosophila/conn.csv"
+description = '''Headerless numeric matrix that was previewed with the first data row misread as column names; reload with header=None to recover the full 49×49 table. Rows and columns appear to be the same ordered set of 49 drosophila brain regions/nodes, aligned by count with data/drosophila/labels.csv and data/drosophila/labels_description.csv. Use it as the weighted connectivity/edge-strength matrix for the fly network.'''
+
+[[data.catalog]]
+name = "Drosophila 3D node coordinates"
+path = "data/drosophila/coords.csv"
+description = '''Headerless 3-column numeric table; reload with header=None to recover all 49 rows. Rows appear to match the 49 nodes used in data/drosophila/conn.csv, and the three columns are spatial coordinates in a 3D embedding or atlas (axis names are not given). Use for spatial plotting or geometry-aware analyses.'''
+
+[[data.catalog]]
+name = "Drosophila sensory labels"
+path = "data/drosophila/labels.csv"
+description = '''Two-column annotation table mapping neuron/region abbreviations to a binary Sensory flag. Rows are named nodes and columns are attributes: Neuron = region code, Sensory = 0/1 label. Use this file to classify nodes as sensory vs non-sensory and to attach names to the order used in the drosophila matrices.'''
+
+[[data.catalog]]
+name = "Drosophila region descriptions"
+path = "data/drosophila/labels_description.csv"
+description = '''Lookup table from neuron/region abbreviations to coarse functional descriptions such as olf, aud, prem, rvis, and lvis. Rows are nodes and columns are text metadata; unlike data/drosophila/networks.csv, this file preserves the node identifiers. Use it when you need interpretable categorical annotations for the fly nodes.'''
+
+[[data.catalog]]
+name = "Drosophila network-category vector"
+path = "data/drosophila/networks.csv"
+description = '''Single-column categorical vector stored without an explicit header row; reload with header=None if you need the full 49 entries, because the first value ('olf') was interpreted as the column name. Values are coarse network labels such as aud, olf, prem, rvis, and lvis, but the file contains no neuron IDs. Use it only when node order is already known from the companion drosophila matrices.'''
+
+[[data.catalog]]
+name = "Drosophila dataset reference"
+path = "data/drosophila/ref.txt"
+description = '''Plain-text citation for the drosophila connectome dataset source. Use it for provenance, bibliography, or to locate methodological details in the original paper.'''
+
+[[data.catalog]]
+name = "Human NumPy connectivity arrays"
+path = "data/human/*.npy"
+description = '''Eleven NumPy binary files in the human folder; sample filenames shown in the inventory are connectivity.npy, consensus_0.npy, and consensus_1.npy. Because these are binary files, inspect them with numpy.load() and a directory listing to confirm exact filenames, shapes, and dtypes before analysis. Use the companion data/human/README.txt.txt to determine which array corresponds to subject-level vs consensus data.'''
+
+[[data.catalog]]
+name = "Human dataset README"
+path = "data/human/README.txt.txt"
+description = '''Short text note explaining the intended meaning of the human .npy files. It states that connectivity.npy contains a 3D array of structural connectivity matrices for 70 subjects, consensus_0.npy is a group-level matrix, and consensus_X files are bootstrapped group-level matrices. Read this before choosing a specific .npy file.'''
+
+[[data.catalog]]
+name = "Macaque binary connectivity matrix"
+path = "data/macaque_modha/conn.csv"
+description = '''Headerless integer matrix with 0/1 values; reload with header=None to recover the full square table instead of treating the first row as column names. Rows and columns appear to be the same ordered list of macaque regions, matching data/macaque_modha/coords.csv and data/macaque_modha/dist.csv. Use it as the structural adjacency matrix, but note that data/macaque_modha/labels.csv has one fewer row than the matrix/description files, so verify alignment before merging annotations.'''
+
+[[data.catalog]]
+name = "Macaque region coordinates"
+path = "data/macaque_modha/coords.csv"
+description = '''Headerless 3-column numeric table of region coordinates; reload with header=None to recover all rows. Rows appear to align with the macaque connectivity and distance matrices, and the three columns are likely x/y/z positions, although axis names are not provided. Many rows are 0,0,0, so treat those as possible missing or placeholder coordinates.'''
+
+[[data.catalog]]
+name = "Macaque inter-region distance matrix"
+path = "data/macaque_modha/dist.csv"
+description = '''Headerless square numeric matrix with zeros on the diagonal and symmetric-looking positive values off-diagonal, consistent with pairwise distances between regions. Reload with header=None to recover the full table; row and column order appears to match data/macaque_modha/conn.csv and data/macaque_modha/coords.csv. Use this for spatial cost or distance-dependent analyses.'''
+
+[[data.catalog]]
+name = "Macaque sensory labels"
+path = "data/macaque_modha/labels.csv"
+description = '''Two-column table mapping macaque region abbreviations to a binary Sensory label. Rows are regions and columns are attributes: Region = code, Sensory = 0/1. This file has 241 rows, so confirm which matrix node is unmatched before joining it to the 242-node numeric tables suggested by the other files.'''
+
+[[data.catalog]]
+name = "Macaque region descriptions"
+path = "data/macaque_modha/labels_description.csv"
+description = '''Text lookup table mapping macaque region abbreviations to descriptive names. Rows are regions and the Description column expands abbreviations into readable anatomical labels. Use it to decode node names in the macaque matrices and as the most complete region index in this folder.'''
+
+[[data.catalog]]
+name = "Macaque dataset reference"
+path = "data/macaque_modha/ref.txt"
+description = '''Plain-text citation for the macaque dataset source. Use it for provenance and to find the original publication describing the long-distance pathway network.'''
+
+[[data.catalog]]
+name = "Mouse region acronyms"
+path = "data/mouse/acronyms.csv"
+description = '''Single-column list of mouse region acronyms stored without an explicit header row; reload with header=None to recover the first acronym ('PTLp') as data. The file appears to provide the ordered short labels for the 112 mouse nodes used in the matrices, and many acronyms repeat in the second half of the list, suggesting paired nodes with side/hemisphere not encoded here. Use it when you need compact identifiers for plotting or matrix indexing.'''
+
+[[data.catalog]]
+name = "Mouse weighted connectivity matrix"
+path = "data/mouse/conn.csv"
+description = '''Headerless weighted connectivity matrix with nonnegative floating values; reload with header=None to recover the full 112×112 table. Rows and columns appear to be the same ordered set of mouse regions, aligning by count with data/mouse/acronyms.csv, data/mouse/labels.csv, data/mouse/coords.csv, and data/mouse/dist.csv. Use it as the mouse connectome edge-weight matrix.'''
+
+[[data.catalog]]
+name = "Mouse node coordinates"
+path = "data/mouse/coords.csv"
+description = '''Headerless 3-column integer coordinate table; reload with header=None to recover all 112 rows. Rows appear to align with the mouse nodes used in the connectivity and distance matrices, and the three columns are spatial coordinates in an atlas or grid, though axis names are not given. Useful for spatial visualization or recomputing distances.'''
+
+[[data.catalog]]
+name = "Mouse pairwise distance matrix"
+path = "data/mouse/dist.csv"
+description = '''Headerless square matrix of pairwise distances with zeros on the diagonal and positive off-diagonal values. Reload with header=None to keep all 112 rows; the ordering appears to match the mouse connectivity matrix and node metadata files. Use it for distance-dependent analyses or to compare geometry with connectivity.'''
+
+[[data.catalog]]
+name = "Mouse region names and sensory labels"
+path = "data/mouse/labels.csv"
+description = '''Two-column annotation table with full mouse region names and a binary Sensory label. Rows are regions and columns are attributes: Region = full anatomical name, Sensory = 0/1. Use it for readable labels and sensory/non-sensory grouping, optionally together with data/mouse/acronyms.csv for short codes.'''
+
+[[data.catalog]]
+name = "Mouse dataset reference"
+path = "data/mouse/ref.txt"
+description = '''Plain-text citation for the mouse connectome dataset source. Use it for provenance or to retrieve the original methods and biological context.'''
+
+[[data.catalog]]
+name = "Rat weighted connectivity matrix"
+path = "data/rat/conn.csv"
+description = '''Headerless weighted adjacency matrix with a small discrete set of values visible in the sample (for example 0, 0.0001, 0.001, 0.01, 0.075, 0.3, 0.75, and 1). Reload with header=None to recover the full 73×73 table; rows and columns appear to be the same ordered rat regions as in data/rat/labels.csv and data/rat/labels_description.csv. Use it as the rat association/connectivity matrix.'''
+
+[[data.catalog]]
+name = "Rat sensory labels"
+path = "data/rat/labels.csv"
+description = '''Two-column table mapping rat region acronyms to a binary Sensory flag. Rows are abbreviations such as MOp, SSp, AUDp, and CA fields, with one 0/1 label per region. Use it to classify nodes and to supply names for the order used in data/rat/conn.csv.'''
+
+[[data.catalog]]
+name = "Rat region descriptions"
+path = "data/rat/labels_description.csv"
+description = '''Text lookup table expanding rat region acronyms into full anatomical descriptions. Rows are the same region codes used in data/rat/labels.csv and the Description column gives readable names such as Primary motor area or Piriform area. The first header may include a UTF-8 BOM, so read with encoding='utf-8-sig' if needed.'''
+
+[[data.catalog]]
+name = "Rat dataset reference"
+path = "data/rat/ref.txt"
+description = '''Plain-text citation for the rat dataset source. Use it for provenance and to look up the original study describing this cortical association connectome.'''
+
+# -- SimulatedUser configuration --
+
+[simulated_user]
+research_brief = '''
+# Research Brief: conn2res
+
+## Background
+We want to use connectome-informed reservoir computing to test how anatomical wiring and dynamical regime shape computational capacity in brain networks. The analyses combine the `conn2res` Python workflow with human structural connectomes (`human/consensus_0.npy`, `human/connectivity.npy` and related sidecars) and four model-organism connectomes provided locally for drosophila, mouse, rat, and macaque (`conn.csv` plus labels/metadata). The core question is whether empirical connectome topology, node selection, and reservoir dynamics support task performance differently from degree-preserving rewired null networks.
+
+## Research Goals
+1. Harmonize all local connectome inputs and node metadata so the reservoir analyses use correctly aligned adjacency matrices, node labels, sensory/input assignments, motor/readout assignments, and human cortical/subcortical or intrinsic-network partitions.
+2. Reproduce the human connectome walkthrough using two NeuroGym classification tasks—perceptual decision making and context-dependent decision making—while varying local nonlinearity and global dynamical regime.
+3. Quantify memory-capacity performance on the group-level human connectome and benchmark the empirical topology against rewired null connectomes that preserve density and degree sequence.
+4. Quantify regional specificity in a single human connectome by running perceptual decision making repeatedly while changing the readout module across intrinsic networks.
+5. Compare memory-capacity curves across drosophila, mouse, rat, and macaque connectomes, and benchmark each empirical network against its own rewired-null ensemble.
+6. Generate figure-style visualizations for task signals, connectivity assignment, reservoir states, readout decision functions, performance curves, null distributions, z-scored empirical performance, and network/module annotations.
+
+## Methodological Preferences
+- Use Python, centered on the `conn2res` workflow and its documented module structure: `tasks.py`, `connectivity.py`, `reservoir.py`, `readout.py`, `performance.py`, and `plotting.py`.
+- Keep package fidelity to the paper: `numpy`, `scipy`, `pandas`, `scikit-learn`, `gym`, `neurogym`, `ReservoirPy`, `bctpy`, `seaborn`, and `matplotlib`.
+- Read local CSV connectome matrices with `pandas.read_csv(..., header=None)` because the numeric first row is matrix data, not a header. Read label files with their normal headers.
+- Use `connectivity.py::Conn` for connectivity manipulation whenever possible: scaling, normalization, and rewiring. Do not replace this with ad hoc graph code unless the toolbox is unavailable.
+- For discrete-time reservoir analyses, use an echo-state-network style reservoir with fixed recurrent weights given by the connectome and nonlinear units in `reservoir.py::Reservoir`.
+- Set global dynamics by scaling the recurrent matrix to a target spectral radius `α`; interpret `α < 1` as stable, `α ≈ 1` as critical, and `α > 1` as chaotic.
+- For the classification walkthrough, use NeuroGym task generators for perceptual decision making and context-dependent decision making, accessed through the conn2res task wrappers or directly through Gym/NeuroGym if needed.
+- Use `sklearn.linear_model.RidgeClassifier` for classification readouts.
+- Use `sklearn.metrics.balanced_accuracy_score` and `sklearn.metrics.f1_score` for classification performance; use macro F1 for multiclass outputs.
+- Generate 1000 trials per classification task with a 70/30 train/test split by trial. Repeat with many independently sampled task datasets; to match the plotted summaries, prioritize 500 repetitions, while noting that the text body mentions 50 for the walkthrough example.
+- For the two classification tasks, vary local nonlinearity across `tanh` and logistic sigmoid only; do not expand to ReLU/SELU/spiking for figure reproduction.
+- For memory-capacity analyses, use the conn2res built-in memory-capacity task/scoring implementation if available; otherwise use the standard Jaeger-style delayed reconstruction benchmark with a linear ridge readout.
+- Use `sklearn.linear_model.Ridge` for regression readouts in memory-capacity analyses.
+- Benchmark empirical connectomes against 500 rewired null connectomes preserving density and degree sequence, using `bctpy` Maslov-Sneppen-style rewiring: `bct.randmio_dir` for asymmetric matrices and `bct.randmio_und` for symmetric matrices.
+- Keep directedness exactly as supplied. Do not symmetrize drosophila, mouse, rat, or macaque unless the underlying matrix is already symmetric.
+- For the human global-topology analysis, use subcortical nodes as inputs and cortical nodes as readouts.
+- For the human regional-specificity analysis, use visual-network nodes as inputs and the remaining intrinsic cortical networks as separate readout modules: somatomotor, dorsal attention, ventral attention, fronto-parietal, limbic, and default mode.
+- Use `scipy.stats.f_oneway` for the one-way ANOVA across readout modules at criticality in the human regional-specificity analysis.
+- For cross-species analyses, use sensory areas as input nodes and motor/premotor areas as readout nodes, derived from the provided labels/description files.
+- Plot mean curves with 95% confidence intervals across repeated task realizations or null networks.
+- For empirical-versus-null summaries, show both the null distribution and a z-scored empirical point, where the z-score is computed relative to the null ensemble.
+
+## What to Approve
+- Plans that use Python and stay within the conn2res/NeuroGym/scikit-learn/bctpy ecosystem.
+- Correct handling of local files, especially reading `conn.csv` and similar matrices with `header=None` and checking matrix-label alignment before any simulation.
+- Reservoir plans that keep recurrent weights fixed, train only the readout, and control global dynamics by spectral-radius scaling.
+- Use of `RidgeClassifier` for the classification tasks and `Ridge` for memory-capacity regression.
+- Explicit use of the two NeuroGym tasks for the walkthrough and the memory-capacity benchmark for the remaining figures.
+- Null-model plans that generate 500 degree- and density-preserving rewired connectomes and preserve directedness.
+- Human analyses that use the intended node assignments: subcortical→cortical for global memory capacity, visual→intrinsic-network readouts for regional specificity.
+- Cross-species plans that curate motor/premotor readout nodes from the provided metadata instead of treating all non-sensory nodes as equivalent.
+- Performance summaries that include balanced accuracy and F1 for classification, memory-capacity scoring for regression, confidence intervals, and the appropriate inferential comparison against nulls or across modules.
+
+## What to Push Back On
+- Any plan that swaps in a generic RNN, PyTorch training, backpropagation-through-time, or learned recurrent weights.
+- Using random reservoirs instead of the empirical connectomes for the main reproductions.
+- Ignoring the spectral-radius manipulation or using a different control parameter for the stable/critical/chaotic sweep.
+- Replacing the NeuroGym tasks with unrelated custom tasks.
+- Skipping the null-model benchmark for the global-topology and cross-species analyses.
+- Using the wrong null model, especially one that does not preserve degree sequence and density.
+- Symmetrizing directed organism connectomes or binarizing weighted connectomes for the main empirical analyses without justification.
+- Omitting the human intrinsic-network partition and instead using arbitrary anatomical groups for the regional-specificity analysis.
+- Reporting only accuracy for the classification tasks or only raw regression error for memory capacity.
+- Failing to notice and resolve metadata mismatches caused by headerless CSV matrices.
+- Treating all non-sensory nodes as motor outputs in the cross-species analysis without curation from `labels.csv` and `labels_description.csv`.
+
+## Domain Interests
+- Whether empirical connectomes outperform matched rewired nulls when the readout is constrained to biologically meaningful input/output pathways.
+- Whether memory-demanding tasks favor stable-to-critical dynamics and whether classification/separability tasks benefit from more expansive dynamics.
+- Whether the effect of local nonlinearity (`tanh` vs sigmoid) changes the shape of the performance-versus-`α` curve.
+- Whether readout performance differs systematically across intrinsic human networks, consistent with functional specialization.
+- Whether the qualitative dependence of memory capacity on `α` is conserved across species despite differences in connectome size, modality, and directionality.
+- Whether null benchmarks show that topology matters beyond simple density or degree sequence.
+- Whether results are robust across repeated task draws and not driven by a single dataset realization.
+
+## Implementation Specifications
+1. **Goal 1: Harmonize connectome and metadata inputs**
+   - **Implementation constraints**:
+     - Read `drosophila/conn.csv`, `mouse/conn.csv`, `mouse/dist.csv`, `rat/conn.csv`, `macaque_modha/conn.csv`, and similar numeric matrices with `pandas.read_csv(..., header=None)`.
+     - Read label tables such as `drosophila/labels.csv`, `drosophila/labels_description.csv`, `mouse/labels.csv`, `rat/labels.csv`, `rat/labels_description.csv`, `macaque_modha/labels.csv`, and `macaque_modha/labels_description.csv` with normal headers.
+     - After loading, verify that each adjacency matrix is square and aligned to the corresponding label table after accounting for the headerless-matrix issue.
+     - Use `human/consensus_0.npy` for the group-level human analysis and one fixed subject from `human/connectivity.npy` for the subject-level regional-specificity analysis. Load the associated human sidecar arrays supplied with the processed dataset to identify cortical vs subcortical nodes and the intrinsic-network partition used in the examples; do not substitute a different atlas.
+     - Preserve edge weights and directionality exactly as supplied for empirical analyses.
+   - **Node assignments**:
+     - Human global topology: input = subcortical nodes; readout = cortical nodes.
+     - Human walkthrough: input = visual-system nodes; readout = somatomotor nodes.
+     - Human regional specificity: input = visual-network nodes; readout modules = somatomotor, dorsal attention, ventral attention, fronto-parietal, limbic, default mode.
+     - Drosophila: input = `labels.csv` rows with `Sensory == 1`; readout = premotor nodes identified by `labels_description.csv` with `Description == "prem"` after index alignment.
+     - Mouse: input = `labels.csv` rows with `Sensory == 1`; readout = motor areas identified from acronyms/labels as `MOp` and `MOs`, keeping all hemispheric copies present.
+     - Rat: input = `labels.csv` rows with `Sensory == 1`; readout = `MOp` and `MOs`.
+     - Macaque: input = `labels.csv` rows with `Sensory == 1`; readout = motor/premotor set curated from the local labels/descriptions, including primary motor, premotor, supplementary motor, and frontal-eye-field areas; keep this list fixed across all `α` and null conditions.
+
+2. **Goal 2: Human walkthrough with perceptual and context-dependent decision making**
+   - **Equations**:
+     - Spectral-radius scaling:
+       \[
+       W(\alpha) = \alpha \cdot \frac{A}{\rho(A)}
+       \]
+       where \(A\) is the empirical connectivity matrix and \(\rho(A)\) is the spectral radius, i.e. the largest absolute eigenvalue of \(A\).
+     - Discrete-time reservoir update:
+       \[
+       r(t+1) = \phi\big(W(\alpha)r(t) + W_{in}u(t+1)\big)
+       \]
+       where:
+       - \(r(t)\) is the reservoir state vector at time \(t\),
+       - \(u(t)\) is the task input vector,
+       - \(W_{in}\) injects the external signal into the selected input nodes only,
+       - \(\phi\) is either `numpy.tanh` or logistic sigmoid.
+     - Ridge-classifier readout:
+       \[
+       \hat{y}(t) = \operatorname{RidgeClassifier}(R_{readout}(t))
+       \]
+       with learning only at the readout weights.
+   - **Parameters**:
+     - Tasks: `PerceptualDecisionMaking-v0` and `ContextDecisionMaking-v0` from NeuroGym.
+     - Local nonlinearities: `tanh`, sigmoid.
+     - Global dynamics: \(\alpha \in [0.05, 2.00]\) in increments of 0.05; include \(\alpha = 1.0\) exactly.
+     - Trials per task realization: 1000.
+     - Train/test split: 70%/30% by trial.
+     - Repetitions: use 500 independently generated task datasets for the plotted performance curves; if reproducing the textual walkthrough only, document the 50-vs-500 discrepancy instead of silently changing it.
+     - Input-node mapping:
+       - Perceptual decision making: use 3 visual-system input nodes, one per input channel.
+       - Context-dependent decision making: use 7 visual-system input nodes, one per input channel.
+       - Keep the selected input-node identities fixed across `α` and activation-function sweeps.
+     - Readout nodes: all somatomotor nodes.
+     - Readout model: `sklearn.linear_model.RidgeClassifier` with fixed hyperparameters; do not cross-validate the ridge penalty unless the original example script explicitly does so.
+   - **Thresholds**:
+     - Stable regime: \(\alpha < 1\)
+     - Critical regime: \(\alpha = 1\) for summary comparisons
+     - Chaotic regime: \(\alpha > 1\)
+   - **Implementation constraints**:
+     - Use the time-resolved target labels emitted by the task generator; train and score the readout on the held-out time points from held-out trials.
+     - Report `sklearn.metrics.balanced_accuracy_score` and `sklearn.metrics.f1_score(average="macro")`.
+     - Plot mean performance vs `α` with 95% confidence intervals across task realizations.
+     - Also generate the walkthrough panels: task input/label time series, connectivity with input/readout nodes marked, reservoir-state traces, readout decision function, and predicted-vs-target time series.
+
+3. **Goal 3: Human global-topology memory capacity vs rewired nulls**
+   - **Equations**:
+     - Reservoir dynamics:
+       \[
+       r(t+1) = \tanh\big(W(\alpha)r(t) + W_{in}u(t+1)\big)
+       \]
+       with \(W(\alpha)\) scaled as above.
+     - If the built-in conn2res memory-capacity scorer is unavailable, use the standard delayed-reconstruction benchmark:
+       \[
+       y_\tau(t) = u(t-\tau), \quad \tau = 1,\dots,\tau_{max}
+       \]
+       Fit a linear ridge readout to predict delayed targets from readout-node states, then compute delay-wise capacity
+       \[
+       MC_\tau = \operatorname{corr}(y_\tau, \hat{y}_\tau)^2
+       \]
+       and aggregate as either
+       \[
+       MC = \sum_{\tau=1}^{\tau_{max}} MC_\tau
+       \]
+       or the normalized version used by the toolbox example. Prefer the toolbox’s own implementation over a custom variant.
+     - Null z-score:
+       \[
+       z = \frac{MC_{emp} - \mu(MC_{null})}{\sigma(MC_{null})}
+       \]
+   - **Parameters**:
+     - Human connectome: group-level `human/consensus_0.npy`.
+     - Input nodes: subcortical.
+     - Readout nodes: cortical.
+     - Local nonlinearity: `tanh`.
+     - Global-dynamics grid: \(\alpha \in [0.05, 2.00]\) by 0.05.
+     - Null ensemble size: 500.
+     - Readout model: `sklearn.linear_model.Ridge`.
+   - **Thresholds**:
+     - Primary empirical-vs-null comparison at \(\alpha = 1.0\).
+   - **Implementation constraints**:
+     - Use `bct.randmio_und` if the human consensus matrix is symmetric; preserve density and degree sequence.
+     - If the empirical matrix is weighted, follow the conn2res `Conn` rewiring convention so the null generation matches the example scripts; do not invent a different weight-preservation rule unless necessary.
+     - Use the same input/readout node assignments and the same `α` grid for empirical and null networks.
+     - Report the empirical memory-capacity curve, the null distribution at \(\alpha=1\), the empirical z-score, and a Monte-Carlo p-value against the 500 nulls.
+
+4. **Goal 4: Human regional specificity in perceptual decision making**
+   - **Equations**:
+     - Reservoir dynamics:
+       \[
+       r(t+1) = \tanh\big(W(\alpha)r(t) + W_{in}u(t+1)\big)
+       \]
+     - Ridge-classifier readout fitted separately for each readout module:
+       \[
+       \hat{y}_m(t) = \operatorname{RidgeClassifier}(R_m(t))
+       \]
+       where \(R_m(t)\) are the states of the nodes belonging to module \(m\).
+   - **Parameters**:
+     - Human connectome: one fixed subject from `human/connectivity.npy`.
+     - Task: `PerceptualDecisionMaking-v0`.
+     - Input nodes: visual-network nodes.
+     - Readout modules: somatomotor, dorsal attention, ventral attention, fronto-parietal, limbic, default mode.
+     - Local nonlinearity: `tanh`.
+     - Global-dynamics grid: \(\alpha \in [0.05, 2.00]\) by 0.05.
+     - Task repetitions: 500 independently generated datasets.
+     - Trials per repetition: 1000.
+     - Train/test split: 70/30 by trial.
+     - Readout model: `sklearn.linear_model.RidgeClassifier`.
+   - **Thresholds**:
+     - Primary between-module inferential test at \(\alpha = 1.0\).
+   - **Implementation constraints**:
+     - Keep the subject, input nodes, and task-generation settings fixed across the six readout-module analyses.
+     - Use `scipy.stats.f_oneway` on the repetition-wise performance values across the six modules at \(\alpha=1.0\).
+     - Plot the six module-wise performance curves with 95% confidence intervals and a separate panel showing the readout modules.
+     - Use the same classification metric throughout the comparison; balanced accuracy is the cleanest primary metric, with F1 as a secondary check if desired.
+
+5. **Goal 5: Cross-species memory capacity vs rewired nulls**
+   - **Equations**:
+     - Reservoir dynamics:
+       \[
+       r(t+1) = \tanh\big(W_s(\alpha)r(t) + W_{in,s}u(t+1)\big)
+       \]
+       where \(W_s(\alpha)\) is the species-specific connectome scaled to spectral radius \(\alpha\).
+     - Memory-capacity scoring: use the same conn2res memory-capacity implementation as in Goal 3 for every species.
+     - Species-wise empirical z-score:
+       \[
+       z_s = \frac{MC_{emp,s}(\alpha^\ast_s) - \mu(MC_{null,s}(\alpha^\ast_s))}{\sigma(MC_{null,s}(\alpha^\ast_s))}
+       \]
+       where \(\alpha^\ast_s\) is the species-specific `α` at which the empirical memory-capacity curve is maximal on the shared grid.
+   - **Parameters**:
+     - Species/connectomes:
+       - drosophila: `drosophila/conn.csv`
+       - mouse: `mouse/conn.csv`
+       - rat: `rat/conn.csv`
+       - macaque: `macaque_modha/conn.csv`
+     - Input nodes: sensory nodes from local labels.
+     - Readout nodes: motor/premotor nodes curated as specified in Goal 1.
+     - Local nonlinearity: `tanh`.
+     - Global-dynamics grid: \(\alpha \in [0.05, 2.00]\) by 0.05.
+     - Null ensemble size per species: 500.
+     - Readout model: `sklearn.linear_model.Ridge`.
+   - **Thresholds**:
+     - Compare empirical and nulls at each species’ empirical peak `α` on the common grid.
+   - **Implementation constraints**:
+     - Use `bct.randmio_dir` for asymmetric organism connectomes and `bct.randmio_und` for symmetric ones.
+     - Preserve the original node ordering and directedness.
+     - Keep the memory-capacity task definition, `α` grid, and scoring identical across species.
+     - Show one performance curve per species and a companion empirical-vs-null summary using z-scored empirical performance against the 500 nulls.
+     - Compute Monte-Carlo p-values within species from the null ensemble.
+
+## Communication Style
+- You are the researcher who designed these experiments. When approving a plan, include ALL implementation-critical specifications the agent needs: exact equations, parameter constraints, sample assignments, threshold values. Front-load the specs — do not wait to see if the agent gets it right.
+- After each stage, proactively state the next research direction with specific methods and parameters.
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 3-5 sentences. Specs can be longer when needed.
+- Ask for clarification on vague method descriptions.
+- NEVER reference "the paper", "the brief", or "the protocol". Speak from your own research experience as if you designed everything myself.
+- NEVER attempt to use tools, read files, or call functions. You can only communicate through text responses to the agent.
+- When ALL research goals from this brief have been addressed (even if some results are imperfect), include the marker [FINISH] at the END of your response. This signals the system to end the run. Do NOT include [FINISH] if there are remaining goals that haven't been attempted.
+'''
+
+# -- Run configuration --
+
+[run]
+max_turns = 200

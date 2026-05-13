@@ -1,0 +1,334 @@
+{
+  "paper": {
+    "title": "Using bacterial population dynamics to count phages and their lysogens",
+    "doi": "10.1038/s41467-024-51913-6"
+  },
+  "proof_flows": [
+    {
+      "id": "pf1",
+      "name": "Plate-reader infection curves can be converted into an OD-based phage counting assay with broad dynamic range and single-phage sensitivity.",
+      "items": [
+        {
+          "id": "pf1.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The reproduction loads the microplate infection time series, identifies per-well lysis OD, and writes calibration and blind-test titer tables.",
+          "paper_reference": "Fig.1c; Fig.2a-c; Methods 'Microplate-based infection assay for measuring phage concentrations'",
+          "expected": "Non-empty machine-readable outputs are produced for time-series summaries, detected first local OD maxima for infected wells, fitted calibration data, and OD-based titer estimates for unknown phage samples.",
+          "tolerance": null,
+          "output_pattern": "results/pf1/*calibration*counts*.csv"
+        },
+        {
+          "id": "pf1.2",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "The reproduced workflow/summary figure reflects the assay design used in the paper.",
+          "paper_reference": "Fig.1a,c",
+          "expected": "The workflow shows uninterrupted plate-reader growth with direct phage addition, optional antibiotic selection for lysogen counting, and separate analysis branches for lysis-OD calibration, full-curve model fitting, and lysogen inference by back-extrapolation.",
+          "tolerance": null,
+          "output_pattern": "figures/fig1_workflow*.png"
+        },
+        {
+          "id": "pf1.3",
+          "priority": "supplementary",
+          "check_type": "qualitative",
+          "verify": "Representative infected growth curves have the same overall shape as the paper's examples.",
+          "paper_reference": "Fig.1b",
+          "expected": "Lytic infection curves show initial growth followed by a sharp OD collapse at massive lysis, a pause, and later recovery; the temperate-plus-selection example retains post-infection growth consistent with lysogen survival.",
+          "tolerance": null,
+          "output_pattern": "figures/fig1_representative*.png"
+        },
+        {
+          "id": "pf1.4",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The lambda ts calibration dataset spans the reported concentration range used to establish the OD-counting curve.",
+          "paper_reference": "Fig.2a; Methods 'Calibration curves using known phage concentrations'",
+          "expected": "The lambda ts calibration dilution series spans from 6 x 10^2 PFU/mL to 6 x 10^11 PFU/mL.",
+          "tolerance": "±0",
+          "output_pattern": "results/pf1/*calibration_input_series*.csv"
+        },
+        {
+          "id": "pf1.5",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "Lysis OD is an approximately linear and monotonic function of the logarithm of the initial lambda ts concentration.",
+          "paper_reference": "Fig.2a",
+          "expected": "When plotted against the logarithm of initial phage concentration, lysis OD forms an approximately straight monotonic line across the calibration series.",
+          "tolerance": null,
+          "output_pattern": "figures/fig2a_calibration*.png"
+        },
+        {
+          "id": "pf1.6",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "OD-based phage counts agree in kind with plaque-assay counts across phage types and replicate variability remains modest.",
+          "paper_reference": "Fig.2b-d",
+          "expected": "OD-based counts for lambda ts, lambda wt, T5, and P1vir cluster near the identity line against plaque counts, and replicate variation remains modest without a clear phage-specific failure mode.",
+          "tolerance": null,
+          "output_pattern": "results/pf1/*benchmark*comparison*.csv"
+        },
+        {
+          "id": "pf1.7",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The single-phage sensitivity experiment matches the reported inoculum, expected occupancy, observed lysis count, and hypothesis test result.",
+          "paper_reference": "Fig.2e; Methods 'Detecting single phages using the OD-based method'",
+          "expected": "In the single-phage assay, the mean added inoculum is 0.38 PFU per 10 uL aliquot, the expected fraction of wells with non-zero phage is 0.316, the observed lysed count is 10 of 32 wells, and the two-tailed binomial-test p-value is 0.849.",
+          "tolerance": "inoculum ±5%; expected fraction ±0.02; lysed wells ±0; p ±0.05",
+          "output_pattern": "results/pf1/*single_phage_detection*.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf2",
+      "name": "A coupled bacteria-phage dynamical model fits OD trajectories, predicts phage kinetics, and supports growth-rate-dependent lytic infection parameters.",
+      "items": [
+        {
+          "id": "pf2.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The ODE-fitting workflow runs for uninfected growth and infected cultures and produces parameter tables plus simulated trajectories.",
+          "paper_reference": "Fig.3a-e; Methods 'Modeling the OD dynamics of phages and bacteria during infection'",
+          "expected": "Non-empty outputs are produced for uninfected-growth parameterization, null-model and growth-dependent infection-model parameters, and simulated OD/phage trajectories suitable for plotting.",
+          "tolerance": null,
+          "output_pattern": "results/pf2/*230119_fig3*fit*.csv"
+        },
+        {
+          "id": "pf2.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The implemented model structure and bacterial-growth parameterization match the paper's description and visual behavior.",
+          "paper_reference": "Fig.3a-b",
+          "expected": "The model tracks nutrients, uninfected cells, infected intermediates, and free phages, and the uninfected-growth fit reproduces the observed multi-phase OD dynamics with declining inferred nutrient availability.",
+          "tolerance": null,
+          "output_pattern": "figures/fig3ab*.png"
+        },
+        {
+          "id": "pf2.3",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "A growth-rate-dependent infection model fits the infected OD data better than the constant-parameter null model.",
+          "paper_reference": "Fig.3c-d; Supplementary Fig.7",
+          "expected": "At least one growth-rate-dependent variant closely overlays the infected OD curves, whereas the constant-parameter null model fits appreciably worse.",
+          "tolerance": null,
+          "output_pattern": "results/pf2/*model_comparison*.csv"
+        },
+        {
+          "id": "pf2.4",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The reproduced r-model captures the infected OD trajectories used in the main text.",
+          "paper_reference": "Fig.3c",
+          "expected": "The fitted r-model reproduces the timing and depth of lysis across the set of initial phage concentrations used for fitting.",
+          "tolerance": null,
+          "output_pattern": "figures/fig3c_fit*.png"
+        },
+        {
+          "id": "pf2.5",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The inferred model predicts phage concentrations measured from extracted samples over time.",
+          "paper_reference": "Fig.3e",
+          "expected": "Predicted phage trajectories follow the measured extracted-phage time courses in temporal ordering and order of magnitude for the fitted cultures.",
+          "tolerance": null,
+          "output_pattern": "results/pf2/*phage_predictions*.csv"
+        },
+        {
+          "id": "pf2.6",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The relative viral growth parameter increases with host growth rate.",
+          "paper_reference": "Fig.3f; Supplementary Fig.10-11",
+          "expected": "The derived relative viral growth parameter shows an upward trend with host growth rate rather than remaining flat or decreasing.",
+          "tolerance": null,
+          "output_pattern": "results/pf2/*R_vs_phi*.csv"
+        },
+        {
+          "id": "pf2.7",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The recovery-extension model infers the reported switching rate into phage resistance.",
+          "paper_reference": "Results paragraph on growth recovery; Supplementary Fig.12",
+          "expected": "The inferred rate of switching into resistance is (5.5 +/- 0.9) x 10^-8 per min.",
+          "tolerance": "±1.0e-8 per min",
+          "output_pattern": "results/pf2/*recovery_switching_rate*.csv"
+        },
+        {
+          "id": "pf2.8",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The conserved-parameter analysis in minimal media reproduces the reported characteristic growth-rate values.",
+          "paper_reference": "Results paragraph on R; Supplementary Fig.10",
+          "expected": "The fitted characteristic growth rate g* is 0.052 min^-1 in M9Mal and 0.035 min^-1 in M9Glu.",
+          "tolerance": "±0.005 min^-1",
+          "output_pattern": "results/pf2/*minimal_media_gstar*.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf3",
+      "name": "A one-cycle infection followed by antibiotic selection can quantify lysogen formation and reveal lysogeny even after single-phage infection.",
+      "items": [
+        {
+          "id": "pf3.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The lysogen-counting workflow runs on infection and detection plate data, back-extrapolates growth curves, and writes lysogeny-versus-MOI results.",
+          "paper_reference": "Fig.4b-c; Methods 'Measuring the frequency of lysogeny as a function of MOI and growth rate'",
+          "expected": "Non-empty outputs are produced for selected-growth fits, extrapolated initial lysogen abundance, extrapolated total-cell abundance, and bulk lysogeny frequency as a function of effective MOI.",
+          "tolerance": null,
+          "output_pattern": "results/pf3/*optimalphysio*lysogeny*.csv"
+        },
+        {
+          "id": "pf3.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Temperate and obligately lytic lambda infections show the different collapse depths reported in the paper.",
+          "paper_reference": "Fig.4a",
+          "expected": "At matched high multiplicity of infection, the temperate lambda wt culture shows a shallower population collapse than the obligately lytic lambda ts culture.",
+          "tolerance": null,
+          "output_pattern": "figures/fig4a*.png"
+        },
+        {
+          "id": "pf3.3",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "Under kanamycin selection, infected cultures yield extrapolatable regrowth curves suitable for estimating initial lysogen abundance.",
+          "paper_reference": "Fig.4b",
+          "expected": "Selected infected cultures exhibit delayed exponential regrowth that can be back-extrapolated to a positive initial lysogen abundance, while uninfected selected controls remain flat.",
+          "tolerance": null,
+          "output_pattern": "results/pf3/*back_extrapolation*.csv"
+        },
+        {
+          "id": "pf3.4",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The measured lysogeny curve rises with effective MOI and the inferred single-cell response allows lysogeny from single-phage infection.",
+          "paper_reference": "Fig.4c",
+          "expected": "Bulk lysogeny increases with effective MOI, and the inferred single-cell response allows a non-zero lysogenization probability from single-phage infection rather than a strict hard threshold.",
+          "tolerance": null,
+          "output_pattern": "figures/fig4c*.png"
+        },
+        {
+          "id": "pf3.5",
+          "priority": "important",
+          "check_type": "quantitative",
+          "verify": "The survivor population after lambda wt infection is overwhelmingly lysogenic as assessed by kanamycin resistance.",
+          "paper_reference": "Supplementary Fig.13",
+          "expected": "The fraction of surviving cells that are kanamycin-resistant lysogens is greater than 99%.",
+          "tolerance": "±0.5%",
+          "output_pattern": "results/pf3/*survivor_lysogen_fraction*.csv"
+        }
+      ]
+    },
+    {
+      "id": "pf4",
+      "name": "Changing host growth physiology shifts the balance of lambda development toward lysogeny in slow-growing cells and increases spontaneous induction in fast-growing lysogens.",
+      "items": [
+        {
+          "id": "pf4.1",
+          "priority": "critical",
+          "check_type": "pipeline",
+          "verify": "The growth-rate-dependent lysogeny and spontaneous-induction workflows run successfully and produce fitted parameter tables plus figure-ready summaries.",
+          "paper_reference": "Fig.5a-g",
+          "expected": "Non-empty outputs are produced for host growth-rate estimation, growth-condition-specific lysogeny fits, fate-diagram predictions, and spontaneous-induction model fits.",
+          "tolerance": null,
+          "output_pattern": "results/pf4/*physiology_dependence*.csv"
+        },
+        {
+          "id": "pf4.2",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The host growth-rate profile and sampled infection conditions match the paper's qualitative pattern.",
+          "paper_reference": "Fig.5a",
+          "expected": "Host growth rate decreases as cultures progress to higher OD, and the sampled infection conditions span clearly distinct physiological states from fast growth to near-stationary growth.",
+          "tolerance": null,
+          "output_pattern": "results/pf4/*growth_rate_vs_od*.csv"
+        },
+        {
+          "id": "pf4.3",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "Bulk lysogeny-versus-MOI curves shift upward as bacterial growth slows.",
+          "paper_reference": "Fig.5b",
+          "expected": "Lower-growth conditions show higher lysogeny frequencies across the MOI range than faster-growing conditions.",
+          "tolerance": null,
+          "output_pattern": "results/pf4/*lysogeny_vs_moi_by_growth*.csv"
+        },
+        {
+          "id": "pf4.4",
+          "priority": "critical",
+          "check_type": "qualitative",
+          "verify": "The inferred single-phage lysogenization probability declines approximately exponentially with growth rate.",
+          "paper_reference": "Fig.5c; Supplementary Table 4",
+          "expected": "The inferred single-phage lysogenization probability is highest in slow-growing cells and declines monotonically with increasing host growth rate on a log scale.",
+          "tolerance": null,
+          "output_pattern": "results/pf4/*q1_vs_growth_rate*.csv"
+        },
+        {
+          "id": "pf4.5",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The fitted two-phage-versus-single-phage lysogenization gain matches the paper's reported magnitude in growing cells and disappears in stationary cells.",
+          "paper_reference": "Fig.5d; Results paragraph on lysogenization",
+          "expected": "In growing cells, the ratio of lysogenization probabilities for two-phage versus single-phage infection is 40-80 fold; in stationary cells there is no significant increase.",
+          "tolerance": "growing-cell ratios within 30-90 fold; stationary ratio <=2",
+          "output_pattern": "results/pf4/*q2_over_q1*.csv"
+        },
+        {
+          "id": "pf4.6",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The combined MOI-by-growth-rate fate diagram has the same directional structure as the paper.",
+          "paper_reference": "Fig.5e",
+          "expected": "Both experimental interpolation and model prediction place the highest lysogeny in the high-MOI, low-growth region and the lowest lysogeny in the low-MOI, fast-growth region.",
+          "tolerance": null,
+          "output_pattern": "figures/fig5e_fate_diagram*.png"
+        },
+        {
+          "id": "pf4.7",
+          "priority": "important",
+          "check_type": "qualitative",
+          "verify": "The spontaneous-induction model jointly reproduces the OD and released-phage trajectories from growing lysogens.",
+          "paper_reference": "Fig.5f-g",
+          "expected": "The fitted model captures both the lysogen OD time course and the extracted-phage time course from the same culture.",
+          "tolerance": null,
+          "output_pattern": "results/pf4/*spontaneous_induction_fit*.csv"
+        },
+        {
+          "id": "pf4.8",
+          "priority": "critical",
+          "check_type": "quantitative",
+          "verify": "The inferred spontaneous induction rate spans the reported endpoint values across host growth states.",
+          "paper_reference": "Fig.5f inset; Results paragraph on spontaneous induction",
+          "expected": "The spontaneous induction rate is approximately 0 per min in slow-growing cells with doubling time >= 70 min and rises to about 1.1 x 10^-5 induction events per min in early-exponential cells with doubling time about 30 min.",
+          "tolerance": "0-endpoint within 1e-6 per min; 1.1e-5 endpoint ±25%",
+          "output_pattern": "results/pf4/*ki_vs_phi*.csv"
+        },
+        {
+          "id": "pf4.9",
+          "priority": "supplementary",
+          "check_type": "quantitative",
+          "verify": "The growth-rate dependence experiment includes the reported number of distinct infection series.",
+          "paper_reference": "Methods 'Infecting at different MOIs and growth rates'",
+          "expected": "The lysogeny-by-growth-rate dataset contains 6 distinct infection series at different host growth rates.",
+          "tolerance": "±0",
+          "output_pattern": "results/pf4/*growth_rate_conditions*.csv"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "weights": {
+      "critical": 3,
+      "important": 2,
+      "supplementary": 1
+    },
+    "verdicts": {
+      "pass": 1.0,
+      "partial": 0.5,
+      "fail": 0.0
+    }
+  }
+}

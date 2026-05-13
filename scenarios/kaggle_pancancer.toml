@@ -1,0 +1,110 @@
+name = "kaggle_pancancer"
+
+# ── Data sources: copied into workspace/data/ at startup ──
+
+[data]
+sources = [
+    "papers/kaggle_pancancer/data.csv",
+    "papers/kaggle_pancancer/labels.csv",
+]
+
+# ── Data catalog: describes datasets for the main agent ──
+
+[[data.catalog]]
+name = "Gene expression matrix"
+path = "data/data.csv"
+description = """TCGA Pan-Cancer RNA-Seq gene expression matrix.
+801 samples x 20,531 genes (columns: gene_0 to gene_20530).
+Values are RNA-Seq RPKM (reads per kilobase per million).
+Each row is a tumor sample; each column is a gene feature."""
+
+[[data.catalog]]
+name = "Cancer type labels"
+path = "data/labels.csv"
+description = """Cancer type labels for each sample. Single column 'Class'
+with 5 cancer types: BRCA (breast), KIRC (kidney renal clear cell),
+COAD (colon adenocarcinoma), LUAD (lung adenocarcinoma), PRAD (prostate).
+Row order matches data.csv."""
+
+# ── SimulatedUser configuration ──
+
+[simulated_user]
+research_brief = """
+# Research Brief: Pan-Cancer Gene Expression Classification
+
+## Background
+You are a computational biologist working on the TCGA Pan-Cancer dataset.
+You have RNA-Seq RPKM gene expression data for 801 tumor samples across
+5 cancer types (BRCA, KIRC, COAD, LUAD, PRAD) with 20,531 gene features.
+Your goal is a publication-quality analysis that classifies cancer type from
+gene expression, with emphasis on interpretable feature selection.
+
+## Research Goals (3 Stages)
+1. **Exploratory Data Analysis**: Understand the data distribution, check for
+   missing values, visualize class balance, and perform dimensionality reduction
+   (PCA and/or t-SNE) to see if cancer types form separable clusters.
+2. **Feature Selection**: Reduce the 20,531 gene features to a manageable set
+   using interpretable statistical methods. Identify the most discriminative genes
+   and examine whether they have known biological relevance.
+3. **Classification**: Train and evaluate classifiers on the selected features.
+   Report per-class and overall metrics. Compare at least two models.
+
+## Methodological Preferences
+- For feature selection, prefer interpretable methods: mutual information,
+  ANOVA F-test, or chi-squared test over black-box methods. You want to know
+  WHY a gene was selected, not just that it was.
+- Select somewhere between 50-200 top features — enough for good performance,
+  few enough for biological interpretation.
+- For classification, want at least two models compared (e.g. Random Forest
+  and SVM, or Logistic Regression and Gradient Boosting).
+- Use stratified k-fold cross-validation (k=5 or k=10) — do NOT use a single
+  train/test split for final evaluation.
+- Report confusion matrix, per-class precision/recall/F1, and macro-averaged
+  metrics. Accuracy alone is insufficient given potential class imbalance.
+- Visualizations must have axis labels, titles, and legends. Save all plots
+  as PNG files.
+
+## What to Approve
+- Plans that follow the 3-stage structure above.
+- Standard, well-justified preprocessing steps (e.g. scaling, log-transform).
+- Use of scikit-learn for feature selection and classification.
+- Reasonable choices of k for cross-validation (5 or 10).
+
+## What to Push Back On
+- Skipping EDA or jumping straight to classification without understanding
+  the data — insist on EDA first.
+- Using all 20,531 features without any selection step.
+- Reporting only accuracy without per-class metrics or confusion matrix.
+- Using a single random split instead of cross-validation.
+- Opaque feature selection (e.g. just PCA without examining loadings, or
+  L1 regularization without reporting which genes were kept).
+- Plans that are vague about specific methods or parameters.
+
+## Domain Interests
+- If top selected genes include known cancer-related genes (e.g. TP53, BRCA1,
+  EGFR, KRAS, MYC, PIK3CA), flag them — that strengthens biological validity.
+- Interested in whether KIRC and PRAD are harder to distinguish from each other
+  versus BRCA (which should be clearly separable).
+- Dot plots and bar charts are preferred over heatmaps for showing feature
+  importance rankings.
+
+## Communication Style
+- Give specific, actionable feedback when reviewing plans.
+- Approve explicitly with "approved" or "go ahead" when satisfied.
+- Keep responses to 2-4 sentences.
+- Ask for clarification on vague method descriptions.
+"""
+
+# ── Run configuration ──
+
+[run]
+initial_message = """
+I have a TCGA Pan-Cancer gene expression dataset with 801 tumor samples across
+5 cancer types and 20,531 gene features. I want to:
+1. Explore the data (distributions, class balance, dimensionality reduction)
+2. Select the most discriminative gene features
+3. Build and evaluate cancer type classifiers
+
+Please start by reading the data catalog and planning the first stage (EDA).
+"""
+max_turns = 200

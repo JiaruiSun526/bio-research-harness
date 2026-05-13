@@ -1,0 +1,76 @@
+# Python build / cache
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# LLM provider config (contains API keys — must NEVER be committed)
+config/llm.toml
+
+# Run artifacts (sessions, transcripts, per-stage outputs)
+# Leading "/" anchors to repo root so similarly-named subdirs (e.g. skills/*/references/)
+# are NOT affected.
+/runs/
+/runs_*/
+
+# Reference materials, datasets, papers — local only (root-anchored)
+/references/
+/ref_files/
+/papers/
+/data/
+/datasets/
+
+# Logs & metrics (root-anchored)
+/logs/
+/logs_*/
+*.log
+/metrics/
+*_eval_report.json
+
+# Misc local outputs (root-anchored)
+/output/
+/outputs/
+/screenshots/
+/gemini_fig/
+/thesis_content/
+/transfer_markdowns/
+/experiment_written_records/
+/real_papers/
+/scratch/
+
+# Documents (kept locally, not part of code release)
+*.docx
+*.doc
+*.pptx
+*.ppt
+*.pdf
+*.xlsx
+
+# Local notes / scratch
+TODO.md
+NOTES.md
+*.scratch.*

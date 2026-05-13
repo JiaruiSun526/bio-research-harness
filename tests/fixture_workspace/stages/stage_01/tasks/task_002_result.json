@@ -1,0 +1,1 @@
+{"task_id":"task_002","status":"success","summary":"Volcano plot script saved. TP53 and BRCA1 are highlighted in red. The plot shows all 7 DE genes with FDR thresholds.","artifact_paths":["stages/stage_01/outputs/volcano_plot.py"],"blockers":[],"suggestions":[],"error":null}

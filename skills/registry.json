@@ -1,0 +1,34 @@
+[
+  {
+    "name": "pydeseq2",
+    "description": "Differential expression analysis with pydeseq2 (Python DESeq2). RNA-seq count data, negative binomial modeling, fold change shrinkage."
+  },
+  {
+    "name": "scikit-survival",
+    "description": "Survival analysis with scikit-survival. Cox proportional hazards, Kaplan-Meier, concordance index, time-dependent AUC."
+  },
+  {
+    "name": "statistical-analysis",
+    "description": "Statistical testing, regression, and modeling. Hypothesis tests, ANOVA, correlation, effect sizes, power analysis."
+  },
+  {
+    "name": "scientific-visualization",
+    "description": "Publication-quality scientific figures. Chart selection, matplotlib/seaborn best practices, export for journals."
+  },
+  {
+    "name": "gget",
+    "description": "Query genomics databases (Ensembl, UniProt, NCBI, PDB). Gene info, sequence retrieval, ID conversion, enrichment analysis."
+  },
+  {
+    "name": "umap-learn",
+    "description": "UMAP dimensionality reduction. Nonlinear manifold learning for visualization and clustering preprocessing."
+  },
+  {
+    "name": "gsea-enrichment",
+    "description": "Gene set enrichment analysis (GSEA) and over-representation analysis (ORA) with gseapy. Pathway interpretation of DEG lists."
+  },
+  {
+    "name": "data-quality-control",
+    "description": "Data auditing and quality control. Missing values, distributions, outliers, sample-level QC, consistency checks."
+  }
+]

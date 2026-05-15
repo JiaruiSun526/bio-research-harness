@@ -1,12 +1,12 @@
 <div align="center">
 
-# bio-research-harness
+# BioCodex
 
-**A multi-agent harness for reproducing real scientific research**
+**An agent harness for stage-by-stage scientific investigation, with a human or simulated PI in the loop**
 
 A planner LLM coordinates code-executing sub-agents in a sandboxed Python / R workspace,
-gated by a user agent (human or simulated principal investigator), to drive stage-by-stage
-investigation of published scientific workflows.
+gated by a user agent (human or simulated principal investigator), to drive each research
+stage forward.
 
 <p>
 <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+"></a>
@@ -24,12 +24,12 @@ investigation of published scientific workflows.
 
 ## Overview
 
-End-to-end reproduction of a peer-reviewed scientific workflow is a demanding test for
-autonomous research agents. It requires reading a brief, acquiring data, choosing methods,
-executing code, interpreting results, and deciding when a conclusion is warranted.
-`bio-research-harness` is the multi-agent system used in an undergraduate thesis project
-(Peking University School of Life Sciences, 2026) to study this loop on real biology
-papers.
+BioCodex is a multi-agent harness designed to **assist researchers** through stage-by-stage
+scientific investigation: exploratory analysis, method choice, code execution, and
+iterative interpretation — with a human or simulated principal investigator in the loop.
+End-to-end reproduction of peer-reviewed biology papers is used to **validate** the
+harness; the validation is conducted in an undergraduate thesis project (Peking University
+School of Life Sciences, 2026).
 
 The design separates **planning** from **execution** and inserts a configurable
 **user-in-the-loop** between them. The user agent can be a human or an LLM that follows a
@@ -123,7 +123,10 @@ post-hoc evaluation and for debugging unexpected agent behavior.
 </tr>
 </table>
 
-## Reproduced workflows
+## Validation: reproduced workflows
+
+End-to-end reproduction of peer-reviewed papers is the primary validation target for the
+harness. Each run is scored against the published methods and conclusions.
 
 | Paper | Domain | Methods exercised | Runtime |
 |---|---|---|---|
@@ -229,9 +232,9 @@ end-to-end runs but expect rough edges. Issues and discussion welcome.
 ## Citation
 
 ```bibtex
-@misc{bioresearchharness,
+@misc{biocodex,
   author = {Sun, Jiarui},
-  title  = {bio-research-harness: a multi-agent harness for reproducing scientific research},
+  title  = {BioCodex: an agent harness for stage-by-stage scientific investigation},
   year   = {2026},
   url    = {https://github.com/JiaruiSun526/bio-research-harness}
 }

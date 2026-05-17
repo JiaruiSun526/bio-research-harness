@@ -149,12 +149,18 @@ class LLMResponse(BaseModel):
 
     llm_client.py converts litellm's raw response into this format.
     No other module imports litellm types directly.
+
+    Cache token fields (cache_creation_tokens, cache_read_tokens) are populated
+    when the provider returns prompt-cache usage (Anthropic explicit cache,
+    OpenAI auto cache). Both are 0 when caching is off or unsupported.
     """
 
     content: str | None = None
     tool_calls: list[ToolCallRequest] = Field(default_factory=list)
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    cache_creation_tokens: int = 0
+    cache_read_tokens: int = 0
 
 
 # ── Loop and run results ──
@@ -170,6 +176,8 @@ class AgentLoopResult(BaseModel):
     turn_count: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    cache_creation_tokens: int = 0
+    cache_read_tokens: int = 0
 
 
 class RunResult(BaseModel):
@@ -182,5 +190,7 @@ class RunResult(BaseModel):
     escalation_count: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    cache_creation_tokens: int = 0
+    cache_read_tokens: int = 0
     error_message: str | None = None
     final_response: str | None = None

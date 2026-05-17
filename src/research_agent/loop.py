@@ -24,8 +24,10 @@ def run_agent_loop(
     max_turns: int,
     model: str | None = None,
     truncate_fn: Callable[[str], str] | None = None,
-    refresh_system_fn: Callable[[], str] | None = None,
+    state_overlay_fn: Callable[[], str] | None = None,
     checkpoint_fn: Callable[[], None] | None = None,
+    compact_fn: Callable[[], bool] | None = None,
+    compaction_threshold_tokens: int = 0,
     trap_errors: bool = False,
     require_terminal_tool: bool = False,
 ) -> AgentLoopResult:
@@ -33,8 +35,8 @@ def run_agent_loop(
 
     Loop logic:
         while True:
-            if refresh_system_fn: messages[0]["content"] = refresh_system_fn()
-            response = llm_client.chat(messages, tools.get_definitions(), model)
+            request_messages = messages + [{role:user, content: state_overlay}]  # transient
+            response = llm_client.chat(request_messages, tools.get_definitions(), model)
             if no tool_calls → break (completed)
             for each tool_call:
                 result = tools.execute(call.name, call.arguments)
@@ -42,6 +44,12 @@ def run_agent_loop(
                 messages.append(tool_result_message)
             turn_count += 1
             if turn_count >= max_turns → break (max_turns_reached)
+
+    State injection model: ``state_overlay_fn`` returns a fresh project-state
+    summary string per turn. The loop appends it as a transient user-role
+    message *only* for the LLM call, never persists it into ``messages``.
+    This keeps the system prefix byte-stable across turns (cache-friendly)
+    while still showing the agent up-to-date state on every call.
 
     Tool errors are handled at two layers:
     - ToolError raised by a tool implementation is caught inside
@@ -62,9 +70,10 @@ def run_agent_loop(
         model: Override llm_client's default model.
         truncate_fn: Optional function to truncate oversized tool results.
             Applied to each tool result string before appending to messages.
-        refresh_system_fn: Optional function that returns an updated system
-            message. Called before each LLM call to refresh messages[0] with
-            current project state.
+        state_overlay_fn: Optional function returning a transient state
+            summary appended (as a user-role message) to the request *only*
+            for the current LLM call. Not persisted into ``messages`` so the
+            cached system prefix stays stable.
         checkpoint_fn: Optional callback invoked after each turn completes.
             Used by the harness to incrementally save session.json so that
             conversation state survives process kills.
@@ -81,16 +90,25 @@ def run_agent_loop(
     final_response: str | None = None
     prompt_tokens = 0
     completion_tokens = 0
+    cache_creation_tokens = 0
+    cache_read_tokens = 0
     stop_reason: StopReason = "completed"
 
     try:
         while True:
-            if refresh_system_fn is not None:
-                messages[0]["content"] = refresh_system_fn()
+            if state_overlay_fn is not None:
+                overlay = state_overlay_fn()
+                request_messages = list(messages) + [
+                    {"role": "user", "content": overlay}
+                ]
+            else:
+                request_messages = messages
 
-            response = llm_client.chat(messages, tools.get_definitions(), model)
+            response = llm_client.chat(request_messages, tools.get_definitions(), model)
             prompt_tokens += response.prompt_tokens
             completion_tokens += response.completion_tokens
+            cache_creation_tokens += response.cache_creation_tokens
+            cache_read_tokens += response.cache_read_tokens
 
             if response.content is not None:
                 final_response = response.content
@@ -169,6 +187,19 @@ def run_agent_loop(
             if turn_count >= max_turns:
                 stop_reason = "max_turns_reached"
                 break
+
+            # Compact *after* the turn but before the next LLM call so the
+            # summary feeds into the next request. We use the most recent
+            # response's prompt_tokens (≈ current persistent context size)
+            # as the trigger signal.
+            if (
+                compact_fn is not None
+                and compaction_threshold_tokens > 0
+                and response.prompt_tokens > compaction_threshold_tokens
+            ):
+                compact_fn()
+                if checkpoint_fn is not None:
+                    checkpoint_fn()
     except Exception as error:
         if not trap_errors:
             raise
@@ -183,4 +214,6 @@ def run_agent_loop(
         turn_count=turn_count,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
+        cache_creation_tokens=cache_creation_tokens,
+        cache_read_tokens=cache_read_tokens,
     )

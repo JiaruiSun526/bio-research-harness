@@ -18,9 +18,11 @@ from typing import TYPE_CHECKING, Any
 
 import pydantic
 
+from .compaction import compact_messages
 from .context import ContextManager
 from .llm_client import LLMClient
 from .loop import run_agent_loop
+from .project_context import load_project_context
 from .prompts import MAIN_AGENT_SYSTEM_PROMPT, SUB_AGENT_PROMPTS
 from .runtime_env import RProbeResult, RuntimeProbeResult, probe_environment, probe_r_environment
 from .schemas import AgentLoopResult, RunResult, SubAgentCompletion, TaskResult, TaskSpec
@@ -55,6 +57,9 @@ class ResearchHarness:
         max_turns: int = 200,
         probe_result: RuntimeProbeResult | None = None,
         r_probe_result: RProbeResult | None | object = _PROBE_R_AUTO,
+        compaction_threshold_tokens: int = 0,
+        compaction_keep_last_k_turns: int = 6,
+        project_context_paths: list[Path] | None = None,
     ) -> None:
         """
         Args:
@@ -70,15 +75,38 @@ class ResearchHarness:
             r_probe_result: Optional precomputed R runtime probe. If not passed
                 (sentinel), the harness auto-probes R (None if Rscript not found).
                 Pass None explicitly to disable R support.
+            compaction_threshold_tokens: When the most recent LLM response's
+                prompt_tokens exceeds this value, the main agent's history is
+                compacted into a summary user message before the next call.
+                Defaults to 0 (disabled). Sub-agents are short-lived and never
+                compacted regardless.
+            compaction_keep_last_k_turns: How many of the most recent assistant
+                turns (each turn = assistant message + its tool results) to
+                retain verbatim during compaction. Older turns are folded into
+                the summary.
+            project_context_paths: Directories to search for project-level
+                context files (PROJECT_RULES.md, AGENTS.md, CLAUDE.md). Loaded
+                once at construction and embedded in the stable system block,
+                so the result must not change during the run. Defaults to
+                ``[workspace.root]``. Pass ``[]`` to disable entirely.
         """
         self.model = model
         self.workspace = workspace
         self.user_agent = user_agent
         self.max_turns = max_turns
         self.llm_client = llm_client or LLMClient(default_model=model)
-        self.context_manager = ContextManager(workspace)
+        if project_context_paths is None:
+            project_context_paths = [workspace.root]
+        self.project_context = load_project_context(
+            search_paths=project_context_paths
+        )
+        self.context_manager = ContextManager(
+            workspace, project_context=self.project_context
+        )
         self.system_prompt = system_prompt or MAIN_AGENT_SYSTEM_PROMPT
         self.probe_result = probe_result or probe_environment()
+        self.compaction_threshold_tokens = compaction_threshold_tokens
+        self.compaction_keep_last_k_turns = compaction_keep_last_k_turns
 
         # R is optional — auto-probe, gracefully None if Rscript not found
         if r_probe_result is self._PROBE_R_AUTO:
@@ -134,10 +162,15 @@ class ResearchHarness:
                 max_turns=self.max_turns,
                 model=self.model,
                 truncate_fn=self.context_manager.truncate_tool_result,
-                refresh_system_fn=lambda: self.context_manager.build_system_message(
-                    self.system_prompt
-                ),
+                state_overlay_fn=self.context_manager.build_state_overlay,
                 checkpoint_fn=lambda: self._save_checkpoint(messages),
+                compact_fn=lambda: compact_messages(
+                    messages,
+                    llm_client=self.llm_client,
+                    keep_last_k_turns=self.compaction_keep_last_k_turns,
+                    model=self.model,
+                ),
+                compaction_threshold_tokens=self.compaction_threshold_tokens,
                 require_terminal_tool=True,
             )
         except Exception:
@@ -163,6 +196,8 @@ class ResearchHarness:
             escalation_count=escalation_count,
             prompt_tokens=loop_result.prompt_tokens,
             completion_tokens=loop_result.completion_tokens,
+            cache_creation_tokens=loop_result.cache_creation_tokens,
+            cache_read_tokens=loop_result.cache_read_tokens,
             error_message=loop_result.error_message,
             final_response=loop_result.final_response,
         )
@@ -286,10 +321,15 @@ class ResearchHarness:
                 max_turns=self.max_turns,
                 model=self.model,
                 truncate_fn=self.context_manager.truncate_tool_result,
-                refresh_system_fn=lambda: self.context_manager.build_system_message(
-                    self.system_prompt
-                ),
+                state_overlay_fn=self.context_manager.build_state_overlay,
                 checkpoint_fn=lambda: self._save_checkpoint(messages),
+                compact_fn=lambda: compact_messages(
+                    messages,
+                    llm_client=self.llm_client,
+                    keep_last_k_turns=self.compaction_keep_last_k_turns,
+                    model=self.model,
+                ),
+                compaction_threshold_tokens=self.compaction_threshold_tokens,
                 require_terminal_tool=True,
             )
         except Exception:
@@ -315,6 +355,8 @@ class ResearchHarness:
             escalation_count=escalation_count,
             prompt_tokens=loop_result.prompt_tokens,
             completion_tokens=loop_result.completion_tokens,
+            cache_creation_tokens=loop_result.cache_creation_tokens,
+            cache_read_tokens=loop_result.cache_read_tokens,
             error_message=loop_result.error_message,
             final_response=loop_result.final_response,
         )

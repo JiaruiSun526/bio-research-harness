@@ -20,15 +20,33 @@ def _build_response(
     tool_calls: list[SimpleNamespace] | None = None,
     prompt_tokens: int | None = None,
     completion_tokens: int | None = None,
+    cache_creation_input_tokens: int | None = None,
+    cache_read_input_tokens: int | None = None,
+    prompt_cached_tokens: int | None = None,
 ) -> SimpleNamespace:
     """Build a mock litellm response object with the expected attribute layout."""
 
     usage = None
-    if prompt_tokens is not None or completion_tokens is not None:
-        usage = SimpleNamespace(
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-        )
+    if (
+        prompt_tokens is not None
+        or completion_tokens is not None
+        or cache_creation_input_tokens is not None
+        or cache_read_input_tokens is not None
+        or prompt_cached_tokens is not None
+    ):
+        usage_kwargs: dict[str, object] = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+        }
+        if cache_creation_input_tokens is not None:
+            usage_kwargs["cache_creation_input_tokens"] = cache_creation_input_tokens
+        if cache_read_input_tokens is not None:
+            usage_kwargs["cache_read_input_tokens"] = cache_read_input_tokens
+        if prompt_cached_tokens is not None:
+            usage_kwargs["prompt_tokens_details"] = SimpleNamespace(
+                cached_tokens=prompt_cached_tokens
+            )
+        usage = SimpleNamespace(**usage_kwargs)
 
     return SimpleNamespace(
         choices=[
@@ -292,3 +310,146 @@ def test_chat_wraps_completion_in_proxy_env() -> None:
         assert os.environ["HTTPS_PROXY"] == "http://shell-proxy:1"
     finally:
         _restore_proxy_env(snapshot)
+
+
+# ---- Prompt cache tests (PR1) -------------------------------------------
+
+
+def test_cache_disabled_does_not_modify_messages_or_tools() -> None:
+    """When cache_enabled is False (the default), payloads must pass through unmodified."""
+
+    client = LLMClient(default_model="m")
+    response = _build_response(content="ok")
+    messages = [
+        {"role": "system", "content": "Sys"},
+        {"role": "user", "content": "hi"},
+    ]
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "noop", "description": "x", "parameters": {}},
+        }
+    ]
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response) as mock:
+        client.chat(messages=messages, tools=tools)
+
+    sent = mock.call_args.kwargs
+    assert sent["messages"][0]["content"] == "Sys"
+    assert "cache_control" not in sent["tools"][-1]
+
+
+def test_cache_enabled_marks_system_message_with_cache_control() -> None:
+    """cache_enabled converts the system content to blocks with cache_control."""
+
+    client = LLMClient(default_model="m", cache_enabled=True)
+    response = _build_response(content="ok")
+    messages = [
+        {"role": "system", "content": "System base"},
+        {"role": "user", "content": "hi"},
+    ]
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response) as mock:
+        client.chat(messages=messages)
+
+    sent_system = mock.call_args.kwargs["messages"][0]
+    assert sent_system["role"] == "system"
+    assert isinstance(sent_system["content"], list)
+    assert sent_system["content"][-1] == {
+        "type": "text",
+        "text": "System base",
+        "cache_control": {"type": "ephemeral"},
+    }
+    # Caller's messages list must remain unmutated.
+    assert messages[0]["content"] == "System base"
+
+
+def test_cache_enabled_marks_last_tool_definition_only() -> None:
+    """Only the final tool entry should receive cache_control when enabled."""
+
+    client = LLMClient(default_model="m", cache_enabled=True)
+    response = _build_response(content="ok")
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "first", "description": "x", "parameters": {}},
+        },
+        {
+            "type": "function",
+            "function": {"name": "second", "description": "x", "parameters": {}},
+        },
+    ]
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response) as mock:
+        client.chat(messages=[{"role": "user", "content": "hi"}], tools=tools)
+
+    sent_tools = mock.call_args.kwargs["tools"]
+    assert "cache_control" not in sent_tools[0]
+    assert sent_tools[1]["cache_control"] == {"type": "ephemeral"}
+    # Caller's tools list must remain unmutated.
+    assert "cache_control" not in tools[0]
+    assert "cache_control" not in tools[1]
+
+
+def test_cache_enabled_with_no_system_message_is_a_noop_on_messages() -> None:
+    """Without a system message at index 0, no cache markers are added to messages."""
+
+    client = LLMClient(default_model="m", cache_enabled=True)
+    response = _build_response(content="ok")
+    messages = [{"role": "user", "content": "hi"}]
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response) as mock:
+        client.chat(messages=messages)
+
+    sent = mock.call_args.kwargs["messages"]
+    assert sent[0]["content"] == "hi"
+
+
+def test_cache_tokens_extracted_from_anthropic_usage_shape() -> None:
+    """cache_creation_input_tokens / cache_read_input_tokens map to LLMResponse."""
+
+    client = LLMClient(default_model="m")
+    response = _build_response(
+        content="ok",
+        prompt_tokens=100,
+        completion_tokens=10,
+        cache_creation_input_tokens=80,
+        cache_read_input_tokens=0,
+    )
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response):
+        result = client.chat(messages=[{"role": "user", "content": "hi"}])
+
+    assert result.cache_creation_tokens == 80
+    assert result.cache_read_tokens == 0
+
+
+def test_cache_tokens_extracted_from_openai_usage_shape() -> None:
+    """OpenAI exposes cached prompt tokens via prompt_tokens_details.cached_tokens."""
+
+    client = LLMClient(default_model="m")
+    response = _build_response(
+        content="ok",
+        prompt_tokens=100,
+        completion_tokens=10,
+        prompt_cached_tokens=64,
+    )
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response):
+        result = client.chat(messages=[{"role": "user", "content": "hi"}])
+
+    assert result.cache_creation_tokens == 0
+    assert result.cache_read_tokens == 64
+
+
+def test_cache_tokens_default_to_zero_when_not_reported() -> None:
+    """No cache fields on usage → both cache token counters are zero."""
+
+    client = LLMClient(default_model="m")
+    response = _build_response(content="ok", prompt_tokens=10, completion_tokens=5)
+
+    with patch("research_agent.llm_client.litellm.completion", return_value=response):
+        result = client.chat(messages=[{"role": "user", "content": "hi"}])
+
+    assert result.cache_creation_tokens == 0
+    assert result.cache_read_tokens == 0

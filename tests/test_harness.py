@@ -96,7 +96,11 @@ def test_run_returns_run_result(tmp_path: Path) -> None:
 
 
 def test_run_builds_correct_initial_messages(tmp_path: Path) -> None:
-    """run generates the initial user message from the SimulatedUser, not from the caller."""
+    """run generates the initial user message from the SimulatedUser, not from the caller.
+
+    The system message must be the *stable* base prompt only; project state
+    is delivered each turn via state_overlay_fn (PR1 cache split).
+    """
 
     harness, workspace = make_harness(tmp_path)
     workspace.write_plan("stage_01", "# Plan")
@@ -104,11 +108,13 @@ def test_run_builds_correct_initial_messages(tmp_path: Path) -> None:
     workspace.approve_plan("stage_01")
 
     captured_messages: list[dict[str, object]] = []
+    captured_state_overlay_fn: list[object] = []
 
     def fake_run_agent_loop(**kwargs: object) -> AgentLoopResult:
         messages = kwargs["messages"]
         assert isinstance(messages, list)
         captured_messages.extend(messages)
+        captured_state_overlay_fn.append(kwargs.get("state_overlay_fn"))
         return AgentLoopResult(stop_reason="completed")
 
     with patch("research_agent.harness.run_agent_loop", side_effect=fake_run_agent_loop):
@@ -117,14 +123,20 @@ def test_run_builds_correct_initial_messages(tmp_path: Path) -> None:
     assert captured_messages[0]["role"] == "system"
     system_message = captured_messages[0]["content"]
     assert isinstance(system_message, str)
-    assert "## Current Project State" in system_message
-    assert "Current stage: stage_01" in system_message
-    assert "stage_01 | plan_status=approved | plan_reviewed=True | stage_status=executing" in system_message
+    # System message must be byte-stable: project state lives in the overlay.
+    assert "## Current Project State" not in system_message
     # Initial user message comes from DummyUserAgent.respond()
     assert captured_messages[1] == {
         "role": "user",
         "content": "Acknowledged.",
     }
+    # The harness must wire a state overlay so the agent sees fresh state per turn.
+    overlay_fn = captured_state_overlay_fn[0]
+    assert callable(overlay_fn)
+    overlay = overlay_fn()  # type: ignore[misc]
+    assert "## Current Project State" in overlay
+    assert "Current stage: stage_01" in overlay
+    assert "stage_01 | plan_status=approved | plan_reviewed=True | stage_status=executing" in overlay
 
 
 def test_dispatch_subagent_registers_task_and_returns_result(tmp_path: Path) -> None:
@@ -468,6 +480,61 @@ def test_harness_probes_runtime_when_probe_result_not_provided(tmp_path: Path) -
         )
 
     assert harness.probe_result == probed_result
+
+
+def test_harness_loads_project_context_into_stable_system_block(tmp_path: Path) -> None:
+    """Harness reads PROJECT_RULES.md from workspace.root and embeds it in the system block.
+
+    Project context lives in the stable system prompt — not the per-turn
+    overlay — so the provider's prompt cache can keep it cached across turns.
+    """
+
+    workspace = make_workspace(tmp_path)
+    rules_path = workspace.root / "PROJECT_RULES.md"
+    rules_path.write_text("Rule: never delete data.", encoding="utf-8")
+
+    harness = ResearchHarness(
+        model="test-model",
+        workspace=workspace,
+        user_agent=DummyUserAgent(),
+        llm_client=MagicMock(),
+        max_turns=3,
+        probe_result=build_stub_probe_result(),
+    )
+
+    captured_messages: list[dict[str, object]] = []
+
+    def fake_run_agent_loop(**kwargs: object) -> AgentLoopResult:
+        messages = kwargs["messages"]
+        assert isinstance(messages, list)
+        captured_messages.extend(messages)
+        return AgentLoopResult(stop_reason="completed")
+
+    with patch("research_agent.harness.run_agent_loop", side_effect=fake_run_agent_loop):
+        harness.run()
+
+    system_content = str(captured_messages[0]["content"])
+    assert "## Project Context" in system_content
+    assert "Rule: never delete data." in system_content
+
+
+def test_harness_disables_project_context_when_empty_paths_passed(tmp_path: Path) -> None:
+    """Passing project_context_paths=[] suppresses the loader entirely."""
+
+    workspace = make_workspace(tmp_path)
+    (workspace.root / "PROJECT_RULES.md").write_text("ignored", encoding="utf-8")
+
+    harness = ResearchHarness(
+        model="test-model",
+        workspace=workspace,
+        user_agent=DummyUserAgent(),
+        llm_client=MagicMock(),
+        max_turns=3,
+        probe_result=build_stub_probe_result(),
+        project_context_paths=[],
+    )
+
+    assert harness.project_context == ""
 
 
 def test_escalation_count(tmp_path: Path) -> None:

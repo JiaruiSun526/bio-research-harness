@@ -1,10 +1,17 @@
-"""Context manager — handles system message injection and tool result truncation.
+"""Context manager — system message + state overlay + tool result truncation.
 
-Two responsibilities:
-1. Build the system message by appending a project_state summary to the
-   base system prompt (refreshed each turn so core state survives context truncation).
-2. Truncate oversized tool results to prevent context bloat, preserving
-   head + tail + a truncation notice.
+Three responsibilities:
+1. Build the *stable* system message (base prompt only) — kept byte-stable across
+   turns so it can serve as a prompt-cache anchor.
+2. Build the *dynamic* state overlay (current ProjectState summary) — re-rendered
+   each turn and injected as a transient user-role message right before the LLM
+   call, then dropped from history. This way the cache prefix never changes
+   even though the agent always sees fresh state.
+3. Truncate oversized tool results, preserving head + tail + a truncation notice.
+
+This stable/dynamic split is required for prompt caching to be effective. The
+old design (state appended into messages[0]["content"] each turn) invalidated
+the system-message cache on every state change.
 """
 
 from __future__ import annotations
@@ -20,37 +27,48 @@ class ContextManager:
         self,
         workspace: Workspace,
         max_tool_result_length: int = 10_000,
+        project_context: str = "",
     ) -> None:
         """
         Args:
             workspace: Workspace instance for reading project_state.
             max_tool_result_length: Tool results longer than this (in chars)
                 will be truncated with head + tail preservation.
+            project_context: Optional project-level guidance (PROJECT_RULES.md,
+                AGENTS.md, CLAUDE.md, etc.) loaded once at harness init by
+                ``project_context.load_project_context``. Appended verbatim to
+                the stable system block, so it must not change during the run.
+                An empty string (the default) means no project context.
         """
         self.workspace = workspace
         self.max_tool_result_length = max_tool_result_length
+        self.project_context = project_context
 
     def build_system_message(self, base_prompt: str) -> str:
-        """Build a system message with project state summary appended.
+        """Return the stable system message: base prompt + project context.
 
-        Reads the current ProjectState from workspace and appends a
-        compact summary to base_prompt. The summary includes:
-        - current_stage_id
-        - Per-stage status (plan_status, plan_reviewed, stage_status, task count, has_conclusion)
-        - data_catalog.json pointer (not its content)
-
-        This ensures core project state is visible to the LLM even if
-        earlier conversation messages are truncated by the context window.
-
-        Args:
-            base_prompt: The base system prompt template.
-
-        Returns:
-            base_prompt + "\\n\\n## Current Project State\\n..." summary.
+        Both halves are byte-stable across turns so the provider-side prompt
+        cache can reuse the prefix. Dynamic state goes through
+        ``build_state_overlay`` instead. Project context is appended only
+        when non-empty so the system message stays minimal otherwise.
         """
+
+        if not self.project_context:
+            return base_prompt
+        return f"{base_prompt}\n\n{self.project_context}"
+
+    def build_state_overlay(self) -> str:
+        """Render the current ProjectState as a transient user-message payload.
+
+        This text is appended as a fresh user-role message immediately before
+        each LLM call and dropped after the call returns; it is *not* mutated
+        into messages[0] (which would invalidate the cache prefix). The agent
+        therefore always sees up-to-date project state without paying the
+        cache-write cost on every turn.
+        """
+
         state = self.workspace.get_state()
-        summary = self._build_project_state_summary(state)
-        return f"{base_prompt}\n\n{summary}"
+        return self._build_project_state_summary(state)
 
     def truncate_tool_result(self, content: str) -> str:
         """Truncate tool result if it exceeds max_tool_result_length.

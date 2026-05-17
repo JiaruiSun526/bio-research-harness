@@ -52,6 +52,7 @@ class LLMClient:
         proxy: str | None = None,
         api_base: str | None = None,
         api_key: str | None = None,
+        cache_enabled: bool = False,
     ) -> None:
         """
         Args:
@@ -64,11 +65,18 @@ class LLMClient:
                 for OpenAI-compatible providers).
             api_key: Optional API key. If provided, passed directly to litellm
                 instead of relying on environment variables.
+            cache_enabled: If True, attach Anthropic-style ``cache_control``
+                markers to the system message and (when present) the last tool
+                definition for each call. Safe to enable for OpenAI-compatible
+                providers as well — they ignore the unknown fields and rely on
+                automatic prefix caching. Cache token usage from the response
+                is reported regardless of this flag.
         """
         self.default_model = default_model
         self.proxy = proxy or None  # normalize "" to None
         self.api_base = api_base
         self.api_key = api_key
+        self.cache_enabled = cache_enabled
 
     @contextmanager
     def _proxy_env(self) -> Iterator[None]:
@@ -117,6 +125,11 @@ class LLMClient:
         Returns:
             LLMResponse with content and/or tool_calls.
         """
+        if self.cache_enabled:
+            messages = _mark_system_cache(messages)
+            if tools:
+                tools = _mark_last_tool_cache(tools)
+
         completion_kwargs: dict[str, Any] = {
             "model": model or self.default_model,
             "messages": messages,
@@ -162,4 +175,81 @@ class LLMClient:
             ],
             prompt_tokens=getattr(usage, "prompt_tokens", 0) or 0,
             completion_tokens=getattr(usage, "completion_tokens", 0) or 0,
+            cache_creation_tokens=_extract_cache_creation_tokens(usage),
+            cache_read_tokens=_extract_cache_read_tokens(usage),
         )
+
+
+def _mark_system_cache(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return a shallow copy of messages with cache_control on the system message.
+
+    Anthropic prompt caching requires the cached content to be expressed as a
+    list of content blocks with ``cache_control: {"type": "ephemeral"}`` on the
+    final block of the cached prefix. The system message is the largest stable
+    block in our requests, so caching it alone covers most of the prefix.
+
+    Mutating the caller's list/dicts would leak cache markers back to the loop
+    after the call returns; we only modify a shallow copy.
+    """
+
+    if not messages or messages[0].get("role") != "system":
+        return messages
+
+    out = list(messages)
+    system_msg = dict(out[0])
+    content = system_msg.get("content")
+    if isinstance(content, str):
+        system_msg["content"] = [
+            {
+                "type": "text",
+                "text": content,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
+    elif isinstance(content, list) and content:
+        # Already in list-of-blocks form — mark the last block.
+        new_blocks = list(content)
+        last = dict(new_blocks[-1])
+        last["cache_control"] = {"type": "ephemeral"}
+        new_blocks[-1] = last
+        system_msg["content"] = new_blocks
+    out[0] = system_msg
+    return out
+
+
+def _mark_last_tool_cache(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return a shallow copy of tools with cache_control on the final entry."""
+
+    if not tools:
+        return tools
+    out = list(tools)
+    last = dict(out[-1])
+    last["cache_control"] = {"type": "ephemeral"}
+    out[-1] = last
+    return out
+
+
+def _extract_cache_creation_tokens(usage: Any) -> int:
+    """Pull cache-write token count from a litellm usage object, if reported."""
+
+    if usage is None:
+        return 0
+    return int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
+
+
+def _extract_cache_read_tokens(usage: Any) -> int:
+    """Pull cache-hit token count, supporting both Anthropic and OpenAI shapes.
+
+    Anthropic exposes ``cache_read_input_tokens`` directly on usage; OpenAI
+    exposes ``prompt_tokens_details.cached_tokens``. We fall back through both.
+    """
+
+    if usage is None:
+        return 0
+    direct = getattr(usage, "cache_read_input_tokens", None)
+    if direct:
+        return int(direct)
+    details = getattr(usage, "prompt_tokens_details", None)
+    if details is not None:
+        return int(getattr(details, "cached_tokens", 0) or 0)
+    return 0

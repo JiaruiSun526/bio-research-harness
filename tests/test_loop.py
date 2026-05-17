@@ -362,24 +362,34 @@ def test_run_agent_loop_truncates_tool_results_when_truncate_fn_provided() -> No
     assert len(tool_msg["content"]) == 100 + len("...[truncated]")
 
 
-def test_run_agent_loop_refreshes_system_message_each_turn() -> None:
-    """refresh_system_fn updates messages[0] before each LLM call."""
+def test_run_agent_loop_appends_state_overlay_transiently_each_turn() -> None:
+    """state_overlay_fn output is appended to the request only, not to messages.
+
+    Invariant: messages must never grow with overlay payloads — those are
+    transient per-turn injections that go away after the LLM call. This
+    keeps the persistent system prefix byte-stable for prompt caching.
+    """
 
     call_count = 0
+    seen_messages: list[list[dict[str, object]]] = []
 
-    def refresh_system() -> str:
+    def overlay() -> str:
         nonlocal call_count
         call_count += 1
-        return f"System v{call_count}"
+        return f"State v{call_count}"
 
     client = MagicMock(spec=LLMClient)
-    client.chat.side_effect = [
-        LLMResponse(
-            content=None,
-            tool_calls=[ToolCallRequest(id="1", name="my_tool", arguments={"x": "1"})],
-        ),
-        LLMResponse(content="Done", tool_calls=[]),
-    ]
+
+    def fake_chat(messages, *args, **kwargs):
+        seen_messages.append([dict(m) for m in messages])
+        if call_count == 1:
+            return LLMResponse(
+                content=None,
+                tool_calls=[ToolCallRequest(id="1", name="my_tool", arguments={"x": "1"})],
+            )
+        return LLMResponse(content="Done", tool_calls=[])
+
+    client.chat.side_effect = fake_chat
 
     registry = ToolRegistry()
 
@@ -392,7 +402,7 @@ def test_run_agent_loop_refreshes_system_message_each_turn() -> None:
         return f"result: {x}"
 
     messages: list[dict[str, object]] = [
-        {"role": "system", "content": "System v0"},
+        {"role": "system", "content": "System base"},
         {"role": "user", "content": "Run"},
     ]
 
@@ -401,11 +411,25 @@ def test_run_agent_loop_refreshes_system_message_each_turn() -> None:
         messages=messages,
         tools=registry,
         max_turns=3,
-        refresh_system_fn=refresh_system,
+        state_overlay_fn=overlay,
     )
 
+    # Overlay must be invoked once per LLM call.
     assert call_count == 2
-    assert messages[0]["content"] == "System v2"
+
+    # Persisted messages MUST NOT contain any overlay payload.
+    assert messages[0] == {"role": "system", "content": "System base"}
+    persisted_contents = [m.get("content") for m in messages]
+    assert not any(
+        isinstance(c, str) and c.startswith("State v") for c in persisted_contents
+    )
+
+    # The first request snapshot must include the overlay as a trailing user msg.
+    first_request = seen_messages[0]
+    assert first_request[-1] == {"role": "user", "content": "State v1"}
+    # And the second request must include the *new* overlay, not v1.
+    second_request = seen_messages[1]
+    assert second_request[-1] == {"role": "user", "content": "State v2"}
 
 
 def test_run_agent_loop_accumulates_token_usage_across_turns() -> None:
@@ -448,3 +472,134 @@ def test_run_agent_loop_accumulates_token_usage_across_turns() -> None:
 
     assert result.prompt_tokens == 25
     assert result.completion_tokens == 13
+
+
+def test_run_agent_loop_invokes_compact_fn_when_prompt_tokens_exceed_threshold() -> None:
+    """compact_fn must fire after a turn whose prompt_tokens exceed the threshold."""
+
+    client = MagicMock(spec=LLMClient)
+    client.chat.side_effect = [
+        LLMResponse(
+            content=None,
+            tool_calls=[ToolCallRequest(id="1", name="my_tool", arguments={"x": "1"})],
+            prompt_tokens=5_000,  # below threshold
+        ),
+        LLMResponse(
+            content=None,
+            tool_calls=[ToolCallRequest(id="2", name="my_tool", arguments={"x": "2"})],
+            prompt_tokens=20_000,  # above threshold — should trigger compaction
+        ),
+        LLMResponse(content="Done", tool_calls=[], prompt_tokens=8_000),
+    ]
+
+    registry = ToolRegistry()
+
+    @registry.register(
+        name="my_tool",
+        description="test",
+        parameters={"x": {"type": "string", "description": "Input value"}},
+    )
+    def my_tool(x: str) -> str:
+        return f"result: {x}"
+
+    compact_fn = MagicMock()
+    messages: list[dict[str, object]] = [
+        {"role": "system", "content": "Sys"},
+        {"role": "user", "content": "Run"},
+    ]
+
+    run_agent_loop(
+        llm_client=client,
+        messages=messages,
+        tools=registry,
+        max_turns=5,
+        compact_fn=compact_fn,
+        compaction_threshold_tokens=10_000,
+    )
+
+    # Compact only fires after the 20k-token turn.
+    assert compact_fn.call_count == 1
+
+
+def test_run_agent_loop_skips_compact_fn_when_threshold_zero() -> None:
+    """Threshold=0 (the default) must disable compaction entirely."""
+
+    client = MagicMock(spec=LLMClient)
+    client.chat.side_effect = [
+        LLMResponse(
+            content=None,
+            tool_calls=[ToolCallRequest(id="1", name="my_tool", arguments={"x": "1"})],
+            prompt_tokens=99_999,  # huge, but threshold is 0 → no compaction
+        ),
+        LLMResponse(content="Done", tool_calls=[]),
+    ]
+
+    registry = ToolRegistry()
+
+    @registry.register(
+        name="my_tool",
+        description="test",
+        parameters={"x": {"type": "string", "description": "Input value"}},
+    )
+    def my_tool(x: str) -> str:
+        return f"result: {x}"
+
+    compact_fn = MagicMock()
+    messages: list[dict[str, object]] = [{"role": "user", "content": "Run"}]
+
+    run_agent_loop(
+        llm_client=client,
+        messages=messages,
+        tools=registry,
+        max_turns=5,
+        compact_fn=compact_fn,
+        compaction_threshold_tokens=0,
+    )
+
+    compact_fn.assert_not_called()
+
+
+def test_run_agent_loop_accumulates_cache_token_usage_across_turns() -> None:
+    """Cache creation and read token counters must accumulate across loop iterations."""
+
+    client = MagicMock(spec=LLMClient)
+    client.chat.side_effect = [
+        LLMResponse(
+            content=None,
+            tool_calls=[ToolCallRequest(id="1", name="my_tool", arguments={"x": "1"})],
+            prompt_tokens=10,
+            completion_tokens=5,
+            cache_creation_tokens=200,
+            cache_read_tokens=0,
+        ),
+        LLMResponse(
+            content="Done",
+            tool_calls=[],
+            prompt_tokens=15,
+            completion_tokens=8,
+            cache_creation_tokens=0,
+            cache_read_tokens=200,
+        ),
+    ]
+
+    registry = ToolRegistry()
+
+    @registry.register(
+        name="my_tool",
+        description="test",
+        parameters={"x": {"type": "string", "description": "Input value"}},
+    )
+    def my_tool(x: str) -> str:
+        return f"result: {x}"
+
+    messages: list[dict[str, object]] = [{"role": "user", "content": "Run"}]
+
+    result = run_agent_loop(
+        llm_client=client,
+        messages=messages,
+        tools=registry,
+        max_turns=3,
+    )
+
+    assert result.cache_creation_tokens == 200
+    assert result.cache_read_tokens == 200

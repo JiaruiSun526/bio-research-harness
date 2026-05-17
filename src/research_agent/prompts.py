@@ -1,8 +1,10 @@
 """System prompts for main agent and sub agents.
 
 Main agent prompt defines the coordinator's role, workflow habits, and
-tool usage guidance. It is combined with project state by
-ContextManager.build_system_message() before each turn.
+tool usage guidance. The base prompt is kept byte-stable across turns to
+serve as a prompt-cache anchor; the dynamic project-state summary is
+injected separately as a transient user message via
+ContextManager.build_state_overlay() each turn.
 
 Sub agent prompts are role-specific — each role (general, data_analyst,
 visualization) has a focused prompt. The harness selects the template
